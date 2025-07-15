@@ -7,15 +7,23 @@ async function bootstrap() {
 
     app.setGlobalPrefix('api/v1');
 
+    // Fixed CORS configuration
     app.enableCors({
-        origin: ['http://localhost:3001', 'http://localhost:3000'], // Allow frontend port
+        origin: [
+            'http://localhost:3001',
+            'http://localhost:3000',
+            'https://pax-romana-nom-3kon.vercel.app',
+            'https://pax-romana-nom-3kon.vercel.app/',
+        ],
         credentials: true,
+        methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
+        allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
     });
 
     app.useGlobalPipes(
         new ValidationPipe({
             whitelist: true,
-            forbidNonWhitelisted: false, // Disable strict validation temporarily
+            forbidNonWhitelisted: false,
             transform: true,
         }),
     );
