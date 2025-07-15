@@ -3,16 +3,16 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
 
 interface User {
-  fullName: string
-  phoneNumber: string
-  verified: boolean
-  voterId?: string
+  id: string
+  name: string
+  email: string
+  role: "super_admin" | "member"
 }
 
 interface AuthContextType {
   user: User | null
   token: string | null
-  login: (userData: string, authToken: { email: string; id: string; name: string; role: "super_admin" | "member" }) => void
+  login: (userData: User, authToken: string) => void
   logout: () => void
   isAuthenticated: boolean
 }
