@@ -135,7 +135,7 @@ export default function AuthForms() {
                 role: loginData.email.includes("admin") ? ("super_admin" as const) : ("member" as const),
             }
 
-            login(user, "token-" + Date.now())
+            setSuccess("Login successful! (Auth integration pending)")
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to sign in")
         } finally {
