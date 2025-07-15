@@ -177,4 +177,70 @@ export declare class NominationController {
         message: string;
         nominationId: string;
     }>;
+    getCompletedVerifications(): Promise<{
+        id: string;
+        nomineeName: string;
+        nomineeEmail: string;
+        nomineeContact: string;
+        position: import(".prisma/client").$Enums.Candidate_Position;
+        createdAt: Date;
+        verificationStatus: string;
+    }[]>;
+    getPendingVerifications(): Promise<({
+        nominatorVerification: ({
+            nomination: {
+                nomineeName: string;
+                nomineePosition: import(".prisma/client").$Enums.Candidate_Position;
+            };
+        } & {
+            subgroup: string;
+            programme: string;
+            name: string;
+            email: string;
+            level: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            nominationId: string;
+            status: string;
+            userId: string | null;
+            comments: string | null;
+            contact: string;
+            verifiedAt: Date | null;
+            declinedAt: Date | null;
+        }) | null;
+        guarantorVerification: ({
+            nomination: {
+                nomineeName: string;
+                nomineePosition: import(".prisma/client").$Enums.Candidate_Position;
+            };
+        } & {
+            subgroup: string;
+            programme: string;
+            name: string;
+            email: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            nominationId: string;
+            status: string;
+            userId: string | null;
+            comments: string | null;
+            contact: string;
+            verifiedAt: Date | null;
+            declinedAt: Date | null;
+            verificationTokenId: string | null;
+        }) | null;
+    } & {
+        phone: string | null;
+        email: string | null;
+        id: string;
+        createdAt: Date;
+        token: string;
+        type: import(".prisma/client").$Enums.TokenType;
+        expiresAt: Date;
+        used: boolean;
+        nominatorVerificationId: string | null;
+        guarantorVerificationId: string | null;
+    })[]>;
 }

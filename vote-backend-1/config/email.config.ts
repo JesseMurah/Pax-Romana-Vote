@@ -1,7 +1,7 @@
 export const emailConfig = {
     smtp: {
         host: process.env.SMTP_HOST || 'smtp.gmail.com',
-        port: parseInt(<string>process.env.SMTP_PORT) || 587,
+        port: parseInt(<string>process.env.SMTP_PORT) || 465,
         secure: false, // true for 465, false for other ports
         auth: {
             user: process.env.SMTP_USER,

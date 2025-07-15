@@ -3,7 +3,7 @@ import { PrismaService } from '../../../../db';
 import { DeadlineService } from '../../common/utils/deadline.service';
 import { CreateNominationDto } from '../dto/create-nomination.dto';
 import { NominationStatus, Candidate_Position, UserRole } from '@prisma/client/index';
-import { NotificationService } from "../../notifications/notification.service";
+// import { NotificationService } from "../../notifications/notification.service"; // Commented out since we're not using it
 import { v4 as uuidv4 } from 'uuid';
 import { UsersService } from "../../users/users.service";
 import { CloudinaryService } from '../../file-upload/services/cloudinary.service';
@@ -28,7 +28,7 @@ function mapPositionToEnum(position: string): Candidate_Position {
 export class NominationService {
     constructor(
         public prisma: PrismaService,
-        public notificationService: NotificationService,
+        // public notificationService: NotificationService, // Commented out
         private deadlineService: DeadlineService,
         public usersService: UsersService,
         private cloudinaryService: CloudinaryService,
@@ -155,9 +155,11 @@ export class NominationService {
             },
         });
 
+        // Generate tokens for verification (you'll need these for manual verification)
         const nominatorToken = uuidv4();
         const guarantorTokens = createNominationDto.guarantorVerifications.map(() => uuidv4());
 
+        // Store tokens in database for later use
         await this.prisma.verificationToken.create({
             data: {
                 token: nominatorToken,
@@ -178,38 +180,55 @@ export class NominationService {
             })),
         });
 
-        await this.notificationService.sendNominatorVerificationEmail({
-            nomination: {
-                nomineeName: nomination.nomineeName,
-                nomineePosition: nomination.nomineePosition,
-            },
-            nominatorName: nomination.nominatorVerification!.name,
-            nominatorEmail: nomination.nominatorVerification!.email,
-            token: nominatorToken,
+        // ALL EMAIL SENDING REMOVED - You can manually send emails using the data from database
+        // The verification tokens and emails are stored in the database for your manual use
+
+        // Log the verification details for manual processing
+        console.log('=== NOMINATION CREATED - MANUAL EMAIL NEEDED ===');
+        console.log('Nominator Email:', nomination.nominatorVerification!.email);
+        console.log('Nominator Token:', nominatorToken);
+        console.log('Guarantor Emails and Tokens:');
+        nomination.guarantorVerifications.forEach((guarantor, index) => {
+            console.log(`  - ${guarantor.email}: ${guarantorTokens[index]}`);
         });
-
-        for (let i = 0; i < nomination.guarantorVerifications.length; i++) {
-            const guarantor = nomination.guarantorVerifications[i];
-            await this.notificationService.sendGuarantorVerificationEmail({
-                nomination: {
-                    nomineeName: nomination.nomineeName,
-                    nomineePosition: nomination.nomineePosition,
-                },
-                guarantorName: guarantor.name,
-                guarantorEmail: guarantor.email,
-                token: guarantorTokens[i],
-            });
-        }
-
-
-        await this.notificationService.notifyAdminsOfNewNomination({
-            nominationId: nomination.id,
-            nomineeName: nomination.nomineeName,
-            position: nomination.nomineePosition,
-            createdAt: nomination.createdAt,
-        });
+        console.log('===============================================');
 
         return nomination;
+    }
+
+    // Helper method to get pending verifications for manual email sending
+    async getPendingVerifications() {
+        const pendingTokens = await this.prisma.verificationToken.findMany({
+            where: {
+                expiresAt: {
+                    gt: new Date(),
+                },
+            },
+            include: {
+                nominatorVerification: {
+                    include: {
+                        nomination: {
+                            select: {
+                                nomineeName: true,
+                                nomineePosition: true,
+                            },
+                        },
+                    },
+                },
+                guarantorVerification: {
+                    include: {
+                        nomination: {
+                            select: {
+                                nomineeName: true,
+                                nomineePosition: true,
+                            },
+                        },
+                    },
+                },
+            },
+        });
+
+        return pendingTokens;
     }
 
     async findAll(filters?: {

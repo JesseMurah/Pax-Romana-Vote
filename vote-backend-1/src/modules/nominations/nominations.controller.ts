@@ -1,6 +1,6 @@
-import {Controller, Get, Post, Body, Param, BadRequestException, Logger} from '@nestjs/common';
-import { NominationService } from './services/nomination.service';
-import { CreateNominationDto } from './dto/create-nomination.dto';
+import {BadRequestException, Body, Controller, Get, Logger, Param, Post} from '@nestjs/common';
+import {NominationService} from './services/nomination.service';
+import {CreateNominationDto} from './dto/create-nomination.dto';
 import {NominatorVerificationService} from "./services/nominator-verification.service";
 import {GuarantorVerificationService} from "./services/guarantor-verification.service";
 import {VerificationResponseDto} from "../auth/dto/auth-response.dto";
@@ -19,8 +19,7 @@ export class NominationController {
   ) {
     this.logger.log('Received nomination request');
     try {
-      const nomination = await this.nominationService.createNomination(createNominationDto);
-      return nomination;
+      return await this.nominationService.createNomination(createNominationDto);
     } catch (error) {
       this.logger.error(`Failed to create nomination: ${error.message}`, error.stack);
       throw new BadRequestException(error.message);
@@ -91,18 +90,27 @@ export class NominationController {
       include: { nominatorVerification: true, guarantorVerifications: true },
     });
 
+    // EMAIL SENDING REMOVED - Log completion for manual notification
     if (
         nomination?.nominatorVerification?.status === 'APPROVED' &&
         nomination?.guarantorVerifications.every((g) => g.status === 'APPROVED')
     ) {
-      await this.nominationService.notificationService.notifyNominationVerificationComplete({
-        nominee: {
-          name: nomination.nomineeName,
-          email: nomination.nomineeEmail,
-          phoneNumber: nomination.nomineeContact,
+      console.log('=== NOMINATION VERIFICATION COMPLETE - MANUAL NOTIFICATION NEEDED ===');
+      console.log('Nominee Name:', nomination.nomineeName);
+      console.log('Nominee Email:', nomination.nomineeEmail);
+      console.log('Nominee Phone:', nomination.nomineeContact);
+      console.log('Position:', nomination.nomineePosition);
+      console.log('Created At:', nomination.createdAt);
+      console.log('================================================================');
+
+      // You can also update nomination status to indicate verification is complete
+      await this.nominationService.prisma.nomination.update({
+        where: { id: nomination.id },
+        data: {
+          // Add a field to track verification completion if needed
+          // verificationCompleted: true,
+          // verificationCompletedAt: new Date(),
         },
-        position: nomination.nomineePosition,
-        createdAt: nomination.createdAt,
       });
     }
 
@@ -124,16 +132,20 @@ export class NominationController {
     }
 
     const updateData = {status: 'REJECTED', comments, declinedAt: new Date()};
+    let nominationId: string | undefined;
+
     if (verificationToken.nominatorVerification) {
       await this.nominationService.prisma.nominatorVerification.update({
         where: {id: verificationToken.nominatorVerification.id},
         data: updateData,
       });
+      nominationId = verificationToken.nominatorVerification.nominationId;
     } else if (verificationToken.guarantorVerification) {
       await this.nominationService.prisma.guarantorVerification.update({
         where: {id: verificationToken.guarantorVerification.id},
         data: updateData,
       });
+      nominationId = verificationToken.guarantorVerification.nominationId;
     }
 
     await this.nominationService.prisma.verificationToken.update({
@@ -141,8 +153,29 @@ export class NominationController {
       data: {used: true},
     });
 
+    // Log declined verification for manual follow-up
+    if (nominationId) {
+      const nomination = await this.nominationService.prisma.nomination.findUnique({
+        where: { id: nominationId },
+        select: {
+          nomineeName: true,
+          nomineeEmail: true,
+          nomineeContact: true,
+          nomineePosition: true,
+        },
+      });
+
+      console.log('=== VERIFICATION DECLINED - MANUAL NOTIFICATION NEEDED ===');
+      console.log('Nominee Name:', nomination?.nomineeName);
+      console.log('Nominee Email:', nomination?.nomineeEmail);
+      console.log('Position:', nomination?.nomineePosition);
+      console.log('Declined Comments:', comments);
+      console.log('========================================================');
+    }
+
     return {message: 'Verification declined'};
   }
+
   @Get('verify/nominator/:token')
   async getNominatorVerificationDetails(@Param('token') token: string) {
     return this.nominatorVerificationService.getVerificationDetails(token);
@@ -163,5 +196,42 @@ export class NominationController {
   @Post('verify/guarantor')
   async verifyGuarantor(@Body() verificationDto: VerificationResponseDto) {
     return this.guarantorVerificationService.verifyGuarantor(verificationDto);
+  }
+
+  // Helper endpoint to get all completed nominations that need manual notification
+  @Get('completed-verifications')
+  async getCompletedVerifications() {
+    const completedNominations = await this.nominationService.prisma.nomination.findMany({
+      where: {
+        nominatorVerification: {
+          status: 'APPROVED',
+        },
+        guarantorVerifications: {
+          every: {
+            status: 'APPROVED',
+          },
+        },
+      },
+      include: {
+        nominatorVerification: true,
+        guarantorVerifications: true,
+      },
+    });
+
+    return completedNominations.map(nomination => ({
+      id: nomination.id,
+      nomineeName: nomination.nomineeName,
+      nomineeEmail: nomination.nomineeEmail,
+      nomineeContact: nomination.nomineeContact,
+      position: nomination.nomineePosition,
+      createdAt: nomination.createdAt,
+      verificationStatus: 'COMPLETED',
+    }));
+  }
+
+  // Helper endpoint to get all pending verifications for manual email sending
+  @Get('pending-verifications')
+  async getPendingVerifications() {
+    return await this.nominationService.getPendingVerifications();
   }
 }

@@ -14,7 +14,6 @@ const common_1 = require("@nestjs/common");
 const db_1 = require("../../../../db");
 const deadline_service_1 = require("../../common/utils/deadline.service");
 const index_1 = require("@prisma/client/index");
-const notification_service_1 = require("../../notifications/notification.service");
 const uuid_1 = require("uuid");
 const users_service_1 = require("../../users/users.service");
 const cloudinary_service_1 = require("../../file-upload/services/cloudinary.service");
@@ -34,13 +33,11 @@ function mapPositionToEnum(position) {
 }
 let NominationService = class NominationService {
     prisma;
-    notificationService;
     deadlineService;
     usersService;
     cloudinaryService;
-    constructor(prisma, notificationService, deadlineService, usersService, cloudinaryService) {
+    constructor(prisma, deadlineService, usersService, cloudinaryService) {
         this.prisma = prisma;
-        this.notificationService = notificationService;
         this.deadlineService = deadlineService;
         this.usersService = usersService;
         this.cloudinaryService = cloudinaryService;
@@ -174,34 +171,47 @@ let NominationService = class NominationService {
                 guarantorVerificationId: nomination.guarantorVerifications[index].id,
             })),
         });
-        await this.notificationService.sendNominatorVerificationEmail({
-            nomination: {
-                nomineeName: nomination.nomineeName,
-                nomineePosition: nomination.nomineePosition,
-            },
-            nominatorName: nomination.nominatorVerification.name,
-            nominatorEmail: nomination.nominatorVerification.email,
-            token: nominatorToken,
+        console.log('=== NOMINATION CREATED - MANUAL EMAIL NEEDED ===');
+        console.log('Nominator Email:', nomination.nominatorVerification.email);
+        console.log('Nominator Token:', nominatorToken);
+        console.log('Guarantor Emails and Tokens:');
+        nomination.guarantorVerifications.forEach((guarantor, index) => {
+            console.log(`  - ${guarantor.email}: ${guarantorTokens[index]}`);
         });
-        for (let i = 0; i < nomination.guarantorVerifications.length; i++) {
-            const guarantor = nomination.guarantorVerifications[i];
-            await this.notificationService.sendGuarantorVerificationEmail({
-                nomination: {
-                    nomineeName: nomination.nomineeName,
-                    nomineePosition: nomination.nomineePosition,
-                },
-                guarantorName: guarantor.name,
-                guarantorEmail: guarantor.email,
-                token: guarantorTokens[i],
-            });
-        }
-        await this.notificationService.notifyAdminsOfNewNomination({
-            nominationId: nomination.id,
-            nomineeName: nomination.nomineeName,
-            position: nomination.nomineePosition,
-            createdAt: nomination.createdAt,
-        });
+        console.log('===============================================');
         return nomination;
+    }
+    async getPendingVerifications() {
+        const pendingTokens = await this.prisma.verificationToken.findMany({
+            where: {
+                expiresAt: {
+                    gt: new Date(),
+                },
+            },
+            include: {
+                nominatorVerification: {
+                    include: {
+                        nomination: {
+                            select: {
+                                nomineeName: true,
+                                nomineePosition: true,
+                            },
+                        },
+                    },
+                },
+                guarantorVerification: {
+                    include: {
+                        nomination: {
+                            select: {
+                                nomineeName: true,
+                                nomineePosition: true,
+                            },
+                        },
+                    },
+                },
+            },
+        });
+        return pendingTokens;
     }
     async findAll(filters) {
         return this.prisma.nomination.findMany({
@@ -301,7 +311,6 @@ exports.NominationService = NominationService;
 exports.NominationService = NominationService = __decorate([
     (0, common_1.Injectable)(),
     __metadata("design:paramtypes", [db_1.PrismaService,
-        notification_service_1.NotificationService,
         deadline_service_1.DeadlineService,
         users_service_1.UsersService,
         cloudinary_service_1.CloudinaryService])

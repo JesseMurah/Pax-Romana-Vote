@@ -2,16 +2,14 @@ import { PrismaService } from '../../../../db';
 import { DeadlineService } from '../../common/utils/deadline.service';
 import { CreateNominationDto } from '../dto/create-nomination.dto';
 import { NominationStatus } from '@prisma/client/index';
-import { NotificationService } from "../../notifications/notification.service";
 import { UsersService } from "../../users/users.service";
 import { CloudinaryService } from '../../file-upload/services/cloudinary.service';
 export declare class NominationService {
     prisma: PrismaService;
-    notificationService: NotificationService;
     private deadlineService;
     usersService: UsersService;
     private cloudinaryService;
-    constructor(prisma: PrismaService, notificationService: NotificationService, deadlineService: DeadlineService, usersService: UsersService, cloudinaryService: CloudinaryService);
+    constructor(prisma: PrismaService, deadlineService: DeadlineService, usersService: UsersService, cloudinaryService: CloudinaryService);
     createNomination(createNominationDto: CreateNominationDto, file?: Express.Multer.File, userId?: string): Promise<{
         nominatorVerification: {
             subgroup: string;
@@ -87,6 +85,63 @@ export declare class NominationService {
         rejectionReason: string | null;
         userId: string | null;
     }>;
+    getPendingVerifications(): Promise<({
+        nominatorVerification: ({
+            nomination: {
+                nomineeName: string;
+                nomineePosition: import(".prisma/client").$Enums.Candidate_Position;
+            };
+        } & {
+            subgroup: string;
+            programme: string;
+            name: string;
+            email: string;
+            level: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            nominationId: string;
+            status: string;
+            userId: string | null;
+            comments: string | null;
+            contact: string;
+            verifiedAt: Date | null;
+            declinedAt: Date | null;
+        }) | null;
+        guarantorVerification: ({
+            nomination: {
+                nomineeName: string;
+                nomineePosition: import(".prisma/client").$Enums.Candidate_Position;
+            };
+        } & {
+            subgroup: string;
+            programme: string;
+            name: string;
+            email: string;
+            id: string;
+            createdAt: Date;
+            updatedAt: Date;
+            nominationId: string;
+            status: string;
+            userId: string | null;
+            comments: string | null;
+            contact: string;
+            verifiedAt: Date | null;
+            declinedAt: Date | null;
+            verificationTokenId: string | null;
+        }) | null;
+    } & {
+        phone: string | null;
+        email: string | null;
+        id: string;
+        createdAt: Date;
+        token: string;
+        type: import(".prisma/client").$Enums.TokenType;
+        expiresAt: Date;
+        used: boolean;
+        nominatorVerificationId: string | null;
+        guarantorVerificationId: string | null;
+    })[]>;
     findAll(filters?: {
         status?: NominationStatus;
         position?: string;

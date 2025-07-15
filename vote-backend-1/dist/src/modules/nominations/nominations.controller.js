@@ -33,8 +33,7 @@ let NominationController = NominationController_1 = class NominationController {
     async create(createNominationDto) {
         this.logger.log('Received nomination request');
         try {
-            const nomination = await this.nominationService.createNomination(createNominationDto);
-            return nomination;
+            return await this.nominationService.createNomination(createNominationDto);
         }
         catch (error) {
             this.logger.error(`Failed to create nomination: ${error.message}`, error.stack);
@@ -96,14 +95,16 @@ let NominationController = NominationController_1 = class NominationController {
         });
         if (nomination?.nominatorVerification?.status === 'APPROVED' &&
             nomination?.guarantorVerifications.every((g) => g.status === 'APPROVED')) {
-            await this.nominationService.notificationService.notifyNominationVerificationComplete({
-                nominee: {
-                    name: nomination.nomineeName,
-                    email: nomination.nomineeEmail,
-                    phoneNumber: nomination.nomineeContact,
-                },
-                position: nomination.nomineePosition,
-                createdAt: nomination.createdAt,
+            console.log('=== NOMINATION VERIFICATION COMPLETE - MANUAL NOTIFICATION NEEDED ===');
+            console.log('Nominee Name:', nomination.nomineeName);
+            console.log('Nominee Email:', nomination.nomineeEmail);
+            console.log('Nominee Phone:', nomination.nomineeContact);
+            console.log('Position:', nomination.nomineePosition);
+            console.log('Created At:', nomination.createdAt);
+            console.log('================================================================');
+            await this.nominationService.prisma.nomination.update({
+                where: { id: nomination.id },
+                data: {},
             });
         }
         return { message: 'Verification successful' };
@@ -120,22 +121,42 @@ let NominationController = NominationController_1 = class NominationController {
             throw new common_1.BadRequestException('Invalid or expired verification token');
         }
         const updateData = { status: 'REJECTED', comments, declinedAt: new Date() };
+        let nominationId;
         if (verificationToken.nominatorVerification) {
             await this.nominationService.prisma.nominatorVerification.update({
                 where: { id: verificationToken.nominatorVerification.id },
                 data: updateData,
             });
+            nominationId = verificationToken.nominatorVerification.nominationId;
         }
         else if (verificationToken.guarantorVerification) {
             await this.nominationService.prisma.guarantorVerification.update({
                 where: { id: verificationToken.guarantorVerification.id },
                 data: updateData,
             });
+            nominationId = verificationToken.guarantorVerification.nominationId;
         }
         await this.nominationService.prisma.verificationToken.update({
             where: { token },
             data: { used: true },
         });
+        if (nominationId) {
+            const nomination = await this.nominationService.prisma.nomination.findUnique({
+                where: { id: nominationId },
+                select: {
+                    nomineeName: true,
+                    nomineeEmail: true,
+                    nomineeContact: true,
+                    nomineePosition: true,
+                },
+            });
+            console.log('=== VERIFICATION DECLINED - MANUAL NOTIFICATION NEEDED ===');
+            console.log('Nominee Name:', nomination?.nomineeName);
+            console.log('Nominee Email:', nomination?.nomineeEmail);
+            console.log('Position:', nomination?.nomineePosition);
+            console.log('Declined Comments:', comments);
+            console.log('========================================================');
+        }
         return { message: 'Verification declined' };
     }
     async getNominatorVerificationDetails(token) {
@@ -149,6 +170,36 @@ let NominationController = NominationController_1 = class NominationController {
     }
     async verifyGuarantor(verificationDto) {
         return this.guarantorVerificationService.verifyGuarantor(verificationDto);
+    }
+    async getCompletedVerifications() {
+        const completedNominations = await this.nominationService.prisma.nomination.findMany({
+            where: {
+                nominatorVerification: {
+                    status: 'APPROVED',
+                },
+                guarantorVerifications: {
+                    every: {
+                        status: 'APPROVED',
+                    },
+                },
+            },
+            include: {
+                nominatorVerification: true,
+                guarantorVerifications: true,
+            },
+        });
+        return completedNominations.map(nomination => ({
+            id: nomination.id,
+            nomineeName: nomination.nomineeName,
+            nomineeEmail: nomination.nomineeEmail,
+            nomineeContact: nomination.nomineeContact,
+            position: nomination.nomineePosition,
+            createdAt: nomination.createdAt,
+            verificationStatus: 'COMPLETED',
+        }));
+    }
+    async getPendingVerifications() {
+        return await this.nominationService.getPendingVerifications();
     }
 };
 exports.NominationController = NominationController;
@@ -209,6 +260,18 @@ __decorate([
     __metadata("design:paramtypes", [auth_response_dto_1.VerificationResponseDto]),
     __metadata("design:returntype", Promise)
 ], NominationController.prototype, "verifyGuarantor", null);
+__decorate([
+    (0, common_1.Get)('completed-verifications'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], NominationController.prototype, "getCompletedVerifications", null);
+__decorate([
+    (0, common_1.Get)('pending-verifications'),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], NominationController.prototype, "getPendingVerifications", null);
 exports.NominationController = NominationController = NominationController_1 = __decorate([
     (0, common_1.Controller)('nominations'),
     __metadata("design:paramtypes", [nomination_service_1.NominationService,
