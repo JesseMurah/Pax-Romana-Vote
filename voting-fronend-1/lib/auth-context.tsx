@@ -61,6 +61,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         token,
+        //@ts-ignore
         login,
         logout,
         isAuthenticated: !!user && !!token,

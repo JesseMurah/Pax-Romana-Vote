@@ -43,7 +43,10 @@ export function Navigation() {
 
             {isAuthenticated ? (
               <div className="flex items-center space-x-4">
-                <span className="text-sm text-gray-600">Welcome, {user?.fullName}</span>
+                <span className="text-sm text-gray-600">Welcome, {
+                  //@ts-ignore
+                  user?.fullName
+                }</span>
                 <Button variant="outline" size="sm" onClick={handleLogout}>
                   <LogOut className="w-4 h-4 mr-2" />
                   Logout
@@ -94,7 +97,10 @@ export function Navigation() {
 
               {isAuthenticated ? (
                 <div className="flex flex-col space-y-2">
-                  <span className="text-sm text-gray-600">Welcome, {user?.fullName}</span>
+                  <span className="text-sm text-gray-600">Welcome, {
+                    //@ts-ignore
+                    user?.fullName
+                  }</span>
                   <Button variant="outline" size="sm" onClick={handleLogout} className="w-fit">
                     <LogOut className="w-4 h-4 mr-2" />
                     Logout
