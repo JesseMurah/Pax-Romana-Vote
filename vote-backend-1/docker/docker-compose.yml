@@ -4,7 +4,7 @@ services:
     container_name: pax-vote-dev
     build:
       context: ..
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
     env_file:
       - ../.env.dev
     ports:
@@ -25,33 +25,33 @@ services:
     restart: unless-stopped
 
   # Production service
-  app-prod:
-    container_name: pax-vote-prod
-    build:
-      context: ..
-      dockerfile: ../Dockerfile.prod
-    env_file:
-      - ../.env.prod
-    ports:
-      - '8080:3000'
-    volumes:
-      - uploads-prod:/app/uploads
-    depends_on:
-      db:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - app-network
-    profiles:
-      - prod
-    restart: unless-stopped
-    deploy:
-      resources:
-        limits:
-          memory: 512M
-        reservations:
-          memory: 256M
+#  app-prod:
+#    container_name: pax-vote-prod
+#    build:
+#      context: ..
+#      dockerfile: ../Dockerfile.prod
+#    env_file:
+#      - ../.env.prod
+#    ports:
+#      - '8080:3000'
+#    volumes:
+#      - uploads-prod:/app/uploads
+#    depends_on:
+#      db:
+#        condition: service_healthy
+#      redis:
+#        condition: service_healthy
+#    networks:
+#      - app-network
+#    profiles:
+#      - prod
+#    restart: unless-stopped
+#    deploy:
+#      resources:
+#        limits:
+#          memory: 512M
+#        reservations:
+#          memory: 256M
 
   # Database service (PostgreSQL)
   db:
@@ -84,29 +84,29 @@ services:
           memory: 128M
 
   # Redis service for caching and sessions
-  redis:
-    image: redis:7-alpine
-    container_name: pax-voting-redis
-    command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
-    ports:
-      - '6379:6379'
-    volumes:
-      - redis-data:/data
-    networks:
-      - app-network
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-      start_period: 10s
-    deploy:
-      resources:
-        limits:
-          memory: 128M
-        reservations:
-          memory: 64M
+#  redis:
+#    image: redis:7-alpine
+#    container_name: pax-voting-redis
+#    command: redis-server --appendonly yes --maxmemory 128mb --maxmemory-policy allkeys-lru
+#    ports:
+#      - '6379:6379'
+#    volumes:
+#      - redis-data:/data
+#    networks:
+#      - app-network
+#    restart: unless-stopped
+#    healthcheck:
+#      test: ["CMD", "redis-cli", "ping"]
+#      interval: 10s
+#      timeout: 5s
+#      retries: 3
+#      start_period: 10s
+#    deploy:
+#      resources:
+#        limits:
+#          memory: 128M
+#        reservations:
+#          memory: 64M
 
 #  # pgAdmin service (Development only)
 #  pgadmin:
