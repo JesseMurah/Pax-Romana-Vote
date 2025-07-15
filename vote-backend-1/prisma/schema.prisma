@@ -1,0 +1,403 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// ============= ENUMS =============
+enum Candidate_Position {
+  PRESIDENT
+  VICE_PRESIDENT
+  GEN_SECRETARY
+  FINANCIAL_SECRETARY
+  ORGANIZING_SECRETARY_MAIN
+  ORGANIZING_SECRETARY_ASST
+  PRO_MAIN
+  PRO_ASSISTANT
+  WOMEN_COMMISSIONER
+
+  @@map("position")
+}
+
+// Add this field later: WOMEN's COMMISSIONEr
+
+enum Gender {
+  MALE
+  FEMALE
+
+  @@map("genders")
+}
+
+enum NominationStatus {
+  PENDING
+  AWAITING_VERIFICATION // Waiting for nominator/guarantor verification
+  PARTIALLY_VERIFIED // Some verifications complete, others pending
+  VERIFIED // All verifications complete
+  UNDER_REVIEW // EC review in progress
+  APPROVED
+  REJECTED
+  WITHDRAWN
+
+  @@map("nomination_statuses")
+}
+
+enum TokenType {
+  NOMINATOR_VERIFICATION
+  GUARANTOR_VERIFICATION
+  ONE_VERIFICATION
+  PASSWORD_RESET
+}
+
+enum UserRole {
+  VOTER
+  ASPIRANT
+  EC_MEMBER // Added: Election Commissioner member
+  SUPER_ADMIN // EC Chairperson
+  ADMIN // Keep for general admin tasks
+
+  @@map("user_roles")
+}
+
+enum VotingStatus {
+  NOT_STARTED
+  ACTIVE
+  COMPLETED
+  SUSPENDED
+
+  @@map("voting_statuses")
+}
+
+enum VerificationStatus {
+  PENDING
+  VERIFIED
+  DECLINED
+  EXPIRED
+
+  @@map("verification_statuses")
+}
+
+// ============= MAIN MODELS =============
+
+model User {
+  id                    String                  @id @default(uuid())
+  name                  String
+  email                 String                  @unique
+  phone                 String?                 @unique
+  password              String?
+  role                  UserRole                @default(VOTER)
+  programme             String?
+  level                 String?
+  subgroup              String?
+  college               String?
+  phoneVerified         Boolean                 @default(false)
+  emailVerified         Boolean                 @default(false)
+  isActive              Boolean                 @default(true)
+  hasVoted              Boolean                 @default(false)
+  inkVerified           Boolean                 @default(false)
+  lastLoginAt           DateTime?
+  createdAt             DateTime                @default(now())
+  updatedAt             DateTime                @updatedAt
+  nominations           Nomination[]            @relation("Aspirant")
+  ecReviews             EcReview[]              @relation("Reviewer")
+  Nomination            Nomination[]
+  NominatorVerification NominatorVerification[]
+  GuarantorVerification GuarantorVerification[]
+  EcReview              EcReview[]
+  VotingSession         VotingSession[]
+  AuditLog              AuditLog[]
+  Subgroup              Subgroup?               @relation(fields: [subgroupId], references: [id])
+  subgroupId            String?
+}
+
+model Nomination {
+  id                     String                  @id @default(cuid())
+  aspirantId             String
+  aspirant               User                    @relation("Aspirant", fields: [aspirantId], references: [id])
+  nomineeName            String
+  nomineeEmail           String
+  nomineeContact         String
+  nomineePosition        Candidate_Position
+  photoUrl               String?
+  photoPublicId          String?
+  status                 NominationStatus        @default(PENDING)
+  nomineeCollege         String
+  nomineeDepartment      String
+  nomineeDateOfBirth     DateTime
+  nomineeHostel          String
+  nomineeRoom            String
+  nomineeSex             String
+  nomineeCwa             String
+  nomineeProgramme       String
+  nomineeLevel           String
+  nomineeParish          String
+  nomineeNationality     String
+  nomineeRegion          String
+  nomineeSubgroups       String[]
+  nomineeEducation       String[]
+  hasLeadershipPosition  Boolean
+  leadershipPositions    String[]
+  hasServedCommittee     Boolean
+  committees             String[]
+  skills                 String[]
+  visionForOffice        String[]
+  knowledgeAboutOffice   String[]
+  approvalCount          Int                     @default(0)
+  rejectionCount         Int                     @default(0)
+  reviewedAt             DateTime?
+  rejectionReason        String?
+  nominatorVerification  NominatorVerification?
+  guarantorVerifications GuarantorVerification[]
+  EcReview               EcReview[]
+  candidate              Candidate?
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+  User                   User?                   @relation(fields: [userId], references: [id])
+  userId                 String?
+  Subgroup               Subgroup?               @relation(fields: [subgroupId], references: [id])
+  subgroupId             String?
+}
+
+model NominatorVerification {
+  id                String             @id @default(cuid())
+  nominationId      String             @unique
+  nomination        Nomination         @relation(fields: [nominationId], references: [id])
+  name              String
+  email             String
+  contact           String
+  programme         String
+  level             String
+  subgroup          String
+  status            String             @default("PENDING")
+  comments          String?
+  verifiedAt        DateTime?
+  declinedAt        DateTime?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  verificationToken VerificationToken?
+  User              User?              @relation(fields: [userId], references: [id])
+  userId            String?
+}
+
+model GuarantorVerification {
+  id                  String             @id @default(cuid())
+  nominationId        String
+  nomination          Nomination         @relation(fields: [nominationId], references: [id])
+  name                String
+  email               String
+  contact             String
+  programme           String
+  subgroup            String
+  status              String             @default("PENDING")
+  comments            String?
+  verifiedAt          DateTime?
+  declinedAt          DateTime?
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+  verificationToken   VerificationToken?
+  verificationTokenId String?            @unique
+  User                User?              @relation(fields: [userId], references: [id])
+  userId              String?
+}
+
+model EcReview {
+  id           String     @id @default(cuid())
+  nominationId String
+  nomination   Nomination @relation(fields: [nominationId], references: [id])
+  reviewerId   String
+  reviewer     User       @relation("Reviewer", fields: [reviewerId], references: [id])
+  approved     Boolean
+  comments     String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  User         User?      @relation(fields: [userId], references: [id])
+  userId       String?
+
+  @@unique([nominationId, reviewerId])
+}
+
+model VerificationToken {
+  id                      String                 @id @default(cuid())
+  token                   String                 @unique
+  type                    TokenType
+  email                   String?
+  phone                   String?
+  expiresAt               DateTime
+  used                    Boolean                @default(false)
+  createdAt               DateTime               @default(now())
+  nominatorVerification   NominatorVerification? @relation(fields: [nominatorVerificationId], references: [id])
+  guarantorVerification   GuarantorVerification? @relation(fields: [guarantorVerificationId], references: [id])
+  nominatorVerificationId String?                @unique
+  guarantorVerificationId String?                @unique
+}
+
+// ============= VOTING MODELS =============
+
+model Candidate {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Basic info from nominations
+  name          String
+  position      Candidate_Position
+  photoUrl      String?
+  photoPublicId String?
+  biography     String?
+  displayOrder  Int                @default(0)
+  isActive      Boolean            @default(true)
+
+  // Candidate number for ballot
+  candidateNumber Int @unique
+
+  // Relationship to nominations
+  nomination   Nomination @relation(fields: [nominationId], references: [id])
+  nominationId String     @unique
+
+  // Vote counting (encrypted/hashed)
+  voteCount Int @default(0)
+
+  @@map("candidates")
+}
+
+model VotingSession {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Session info
+  sessionId         String  @unique
+  voterHash         String // Hashed phone number for privacy
+  deviceFingerprint String?
+  ipAddress         String?
+  userAgent         String?
+
+  // Session status
+  status    VotingStatus @default(ACTIVE)
+  startTime DateTime     @default(now())
+  endTime   DateTime?
+  expiresAt DateTime // Auto-expire sessions
+
+  // Security
+  isValid Boolean @default(true)
+
+  // Relationships
+  user   User   @relation(fields: [userId], references: [id])
+  userId String
+  votes  Vote[]
+
+  @@map("voting_sessions")
+}
+
+model Vote {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // Vote data (encrypted)
+  encryptedVote  String // Encrypted vote selections
+  voterHash      String // Hashed phone for anonymity
+  submissionTime DateTime @default(now())
+
+  // Security
+  deviceFingerprint String?
+  ipAddress         String?
+  isValid           Boolean @default(true)
+
+  // Relationships
+  session   VotingSession @relation(fields: [sessionId], references: [id])
+  sessionId String
+
+  @@map("votes")
+}
+
+// ============= AUDIT & LOGGING =============
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+
+  // Event details
+  action    String
+  entity    String
+  entityId  String?
+  oldValues Json?
+  newValues Json?
+  ipAddress String?
+  userAgent String?
+
+  // User who performed action
+  user   User?   @relation(fields: [userId], references: [id])
+  userId String?
+
+  @@map("audit_logs")
+}
+
+// ============= REFERENCE DATA =============
+
+model Subgroup {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name        String  @unique
+  description String?
+  isActive    Boolean @default(true)
+
+  // Relationships
+  users       User[]
+  nominations Nomination[]
+
+  @@map("subgroups")
+}
+
+model Programme {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name     String  @unique
+  college  String?
+  duration Int? // Duration in years
+  isActive Boolean @default(true)
+
+  @@map("programmes")
+}
+
+// ============= SYSTEM CONFIGURATION =============
+
+model SystemConfig {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  key   String @unique
+  value String
+  type  String // 'string', 'number', 'boolean', 'date'
+
+  @@map("system_config")
+}
+
+// ============= ELECTION TIMELINE =============
+
+model ElectionTimeline {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  phase               String   @unique // 'nominations', 'vetting', 'voting', 'results'
+  startDate           DateTime
+  endDate             DateTime
+  gracePeriodHours    Int      @default(0)
+  isActive            Boolean  @default(false)
+  automaticTransition Boolean  @default(true)
+
+  @@map("election_timeline")
+}
