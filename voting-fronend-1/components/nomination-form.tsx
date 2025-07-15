@@ -195,7 +195,7 @@ export function NominationForm() {
 
       console.log("Sending payload:", payload);
 
-      const response = await axios.post("http://localhost:3000/api/v1/nominations", payload, {
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/api/v1/nominations`, payload, {
         headers: {
           "Content-Type": "application/json"
         },
