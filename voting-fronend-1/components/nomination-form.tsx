@@ -147,8 +147,8 @@ export function NominationForm() {
         aspirantName: formData.nomineeName,
         aspirantPhoneNumber: formData.nomineeContact,
         aspirantEmail: formData.nomineeEmail,
-        position: formData.nomineePosition, // Don't modify this - send as is
-        photoUrl: "https://example.com/placeholder.jpg", // Placeholder for now
+        position: formData.nomineePosition,
+        photoUrl: "https://example.com/placeholder.jpg",
         nomineeCollege: formData.nomineeCollege,
         nomineeDepartment: formData.nomineeDepartment,
         nomineeDateOfBirth: formData.nomineeDateOfBirth,
@@ -195,7 +195,7 @@ export function NominationForm() {
 
       console.log("Sending payload:", payload);
 
-      const response = await axios.post("https://pax-romana-vote-production.up.railway.app/api/v1/nominations", payload, {
+      const response = await axios.post("http://localhost:3000/api/v1/nominations", payload, {
         headers: {
           "Content-Type": "application/json"
         },
@@ -205,8 +205,29 @@ export function NominationForm() {
       setSuccess(true);
       window.scrollTo(0, 0);
     } catch (error) {
+      let errorMsg = "Failed to submit nomination";
+
       //@ts-ignore
-      const errorMsg = error.response?.data?.message || error.message || "Failed to submit nomination";
+      if (error.response?.data?.message) {
+        //@ts-ignore
+        const backendMessage = error.response.data.message;
+
+        // Handle specific error cases
+        if (backendMessage.includes("already have a nomination for this position")) {
+          errorMsg = `${formData.nomineeName} already has a nomination for ${formData.nomineePosition}. Each person can only be nominated once per position.`;
+        } else if (backendMessage.includes("Service not available")) {
+          errorMsg = "Email service is temporarily unavailable. The nomination was created but verification emails could not be sent. Please contact the administrator.";
+        } else if (backendMessage.includes("Invalid email")) {
+          errorMsg = "One or more email addresses are invalid. Please check all email fields.";
+        } else {
+          errorMsg = backendMessage;
+        }
+        //@ts-ignore
+      } else if (error.message) {
+        //@ts-ignore
+        errorMsg = error.message;
+      }
+
       //@ts-ignore
       console.error("Error:", error.response?.data || error);
       setError(errorMsg);
