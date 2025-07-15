@@ -135,8 +135,7 @@ export default function AuthForms() {
                 role: loginData.email.includes("admin") ? ("super_admin" as const) : ("member" as const),
             }
 
-            //@ts-ignore
-            login("token-" + Date.now(), user)
+            login(user, "token-" + Date.now())
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to sign in")
         } finally {
