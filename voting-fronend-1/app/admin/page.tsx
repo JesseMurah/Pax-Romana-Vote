@@ -25,7 +25,7 @@ interface SignupData {
     agreeToTerms: boolean
 }
 
-export function AuthForms() {
+export default function AuthForms() {
     const { login } = useAuth()
     const [currentStep, setCurrentStep] = useState<AuthStep>("login")
     const [isLoading, setIsLoading] = useState(false)
