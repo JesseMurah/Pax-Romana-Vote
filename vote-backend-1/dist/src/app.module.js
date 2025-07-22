@@ -34,11 +34,7 @@ exports.AppModule = AppModule = __decorate([
         imports: [
             config_1.ConfigModule.forRoot({
                 isGlobal: true,
-                envFilePath: [
-                    process.env.NODE_ENV === 'production' ? '.env.prod' : '.env.dev',
-                    'prisma/.env',
-                ],
-                cache: true,
+                envFilePath: '.env',
             }),
             throttler_1.ThrottlerModule.forRoot([
                 {

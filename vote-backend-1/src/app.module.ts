@@ -28,11 +28,7 @@ import {CustomThrottlerGuard} from "./throttler.guard";
         // Configuration
         ConfigModule.forRoot({
             isGlobal: true,
-            envFilePath: [
-                process.env.NODE_ENV === 'production' ? '.env.prod' : '.env.dev',
-                'prisma/.env', // Load Prisma env for DATABASE_URL
-            ],
-            cache: true,
+            envFilePath: '.env',
         }),
 
         // Rate limiting
