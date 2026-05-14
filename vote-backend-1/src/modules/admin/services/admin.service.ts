@@ -9,7 +9,6 @@ export class AdminService {
         private prisma: PrismaService,
         private notificationsService: NotificationService,
     ) {
-        console.log('Instantiating AdminService');
     }
 
     async validateAdminAccess(userId: string, requiredRole: UserRole) {

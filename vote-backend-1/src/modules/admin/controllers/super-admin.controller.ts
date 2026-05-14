@@ -18,7 +18,7 @@ interface AuthenticatedRequest extends Request {
 }
 
 @Controller('admin/super-admin')
-// @UseGuards(JwtAuthGuard, RolesGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
 @Roles(UserRole.SUPER_ADMIN) // Use UserRole enum
 export class SuperAdminController {
     constructor(

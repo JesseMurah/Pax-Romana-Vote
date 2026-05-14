@@ -2,6 +2,7 @@ import {
     BadRequestException,
     ConflictException,
     ForbiddenException,
+    HttpException,
     Injectable,
     Logger,
     NotFoundException,
@@ -30,9 +31,11 @@ export class VoteSubmissionService {
         private readonly votingStatsService: VotingStatsService,
         private readonly anomalyDetectionService: AnomalyDetectionService,
     ) {
-        this.encryptionKey =
-            this.configService.get('VOTE_ENCRYPTION_KEY') ||
-            '3041a8efad5e974cc27bc09cf57c8ad8555f80958f4c1d27b7f4d68d5b3c8de6';
+        const key = this.configService.get<string>('VOTE_ENCRYPTION_KEY');
+        if (!key) {
+            throw new Error('VOTE_ENCRYPTION_KEY environment variable is required');
+        }
+        this.encryptionKey = key;
     }
 
     async getBallot(): Promise<any> {
@@ -254,6 +257,9 @@ export class VoteSubmissionService {
                 ],
             };
         } catch (error) {
+            if (error instanceof HttpException) {
+                throw error;
+            }
             this.realTimeService.broadcastToAdmins({
                 type: SseEventType.SYSTEM_STATUS,
                 data: { action: 'VOTE_SUBMISSION_FAILED', sessionId: sessionId.slice(0, 8) + '***', error: error.message, timestamp: new Date() },

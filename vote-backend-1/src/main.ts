@@ -1,5 +1,5 @@
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { Logger, ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -32,9 +32,9 @@ async function bootstrap() {
     }
     await app.listen(port);
 
-    console.log(`🚀 Pax Romana KNUST API running on port ${port}`);
-    console.log(`🌍 Environment: ${process.env.NODE_ENV || 'development'}`);
-    console.log(`📅 Deadline: July 11th - ${new Date().toLocaleDateString()}`);
+    Logger.log(`Pax Romana KNUST API running on port ${port}`, 'Bootstrap');
+    Logger.log(`Environment: ${process.env.NODE_ENV || 'development'}`, 'Bootstrap');
+    Logger.log(`Deadline: July 11th - ${new Date().toLocaleDateString()}`, 'Bootstrap');
 }
 
 bootstrap();
