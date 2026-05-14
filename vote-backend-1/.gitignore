@@ -1,3 +1,20 @@
+# compiled output
+dist/
+build/
 
+# Node
+node_modules/
+npm-debug.log*
 
-./prisma/.env
+# env files
+.env
+.env.*
+!.env.example
+prisma/.env
+
+# uploads
+uploads/
+
+# OS
+.DS_Store
+.DS_Store?
