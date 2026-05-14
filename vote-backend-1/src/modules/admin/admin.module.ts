@@ -7,7 +7,7 @@ import {SuperAdminController} from "./controllers/super-admin.controller";
 import {EcNominationsController} from "./controllers/ec-nominations.controller";
 import {AdminDashboardController} from "./controllers/admin-dashboard.controller";
 import {NominationReviewService} from "./services/nomination-review.service";
-import {EcConsensusService} from "./services/ec-consensus.service";
+import { EcConsensusService } from '../common/utils/ec-consensus.service';
 import {AdminDashboardService} from "./services/admin-dashboard.service";
 import {NominationStatisticsService} from "./services/nomination-statistics.service";
 

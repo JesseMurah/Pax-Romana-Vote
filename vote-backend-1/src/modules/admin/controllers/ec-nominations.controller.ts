@@ -4,7 +4,7 @@ import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
 import { RolesGuard } from "../../auth/guards/roles.guard";
 import { UserRoles } from "../../users/enums/user-roles.enum";
 import { NominationReviewService } from "../services/nomination-review.service";
-import { EcConsensusService } from "../services/ec-consensus.service";
+import { EcConsensusService } from '../../common/utils/ec-consensus.service';
 import { BulkNominationReviewDto, NominationReviewDto } from "../dto/nomination-review.dto";
 
 

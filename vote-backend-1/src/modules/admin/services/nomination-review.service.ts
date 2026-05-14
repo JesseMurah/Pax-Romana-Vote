@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../../db';
 import { NotificationService } from '../../notifications/notification.service';
-import { EcConsensusService } from './ec-consensus.service';
+import { EcConsensusService } from '../../common/utils/ec-consensus.service';
 import { BulkNominationReviewDto, NominationReviewDto } from '../dto/nomination-review.dto';
 import { NominationStatus, UserRole } from '@prisma/client';
 import { AdminActions } from '../../common/enums/nomination-status.enum';
