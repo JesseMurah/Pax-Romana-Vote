@@ -1,6 +1,8 @@
 # compiled output
 dist/
 build/
+coverage/
+*.tsbuildinfo
 
 # Node
 node_modules/
