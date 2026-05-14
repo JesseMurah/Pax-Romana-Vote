@@ -15,10 +15,6 @@ export class NominationWorkflowService {
     async processVerification(token: string, action: 'CONFIRM' | 'DECLINE', reason?: string) {
         const verificationToken = await this.prisma.verificationToken.findUnique({
             where: { token },
-            include: {
-                guarantorVerification: true,
-                nominatorVerification: true,
-            },
         });
 
         if (!verificationToken) {
@@ -29,15 +25,8 @@ export class NominationWorkflowService {
             throw new BadRequestException('Verification token is invalid or expired');
         }
 
-        const guarantorVerificationId = verificationToken.guarantorVerification?.id;
-        const nominatorVerificationId = verificationToken.nominatorVerification?.id;
-
-        if (!guarantorVerificationId && !nominatorVerificationId) {
-            throw new BadRequestException('No associated verification found');
-        }
-
-        const verificationId = guarantorVerificationId || nominatorVerificationId;
-        const isGuarantor = !!guarantorVerificationId;
+        const verificationId = verificationToken.verificationId;
+        const isGuarantor = verificationToken.verificationType === 'GUARANTOR';
 
         // Update verification status
         const updateData = {
@@ -65,9 +54,19 @@ export class NominationWorkflowService {
             data: { used: true },
         });
 
+        // Fetch the verification record to get nominationId
+        let nominationId: string | undefined;
+        if (isGuarantor) {
+            const gv = await this.prisma.guarantorVerification.findUnique({ where: { id: verificationId } });
+            nominationId = gv?.nominationId;
+        } else {
+            const nv = await this.prisma.nominatorVerification.findUnique({ where: { id: verificationId } });
+            nominationId = nv?.nominationId;
+        }
+
         // Check if nomination is fully verified
         const nomination = await this.prisma.nomination.findUnique({
-            where: { id: verificationToken.guarantorVerification?.nominationId || verificationToken.nominatorVerification?.nominationId },
+            where: { id: nominationId },
             include: {
                 nominatorVerification: true,
                 guarantorVerifications: true,

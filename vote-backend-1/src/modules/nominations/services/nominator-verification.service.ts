@@ -15,32 +15,34 @@ export class NominatorVerificationService {
         const { verificationToken, action, reason } = verificationDto;
 
         // Find the verification token
-        const verificationRecord = await this.prisma.verificationToken.findUnique({
+        const tokenRecord = await this.prisma.verificationToken.findUnique({
             where: { token: verificationToken },
+        });
+
+        if (!tokenRecord || tokenRecord.verificationType !== 'NOMINATOR') {
+            throw new BadRequestException('Invalid verification token');
+        }
+
+        if (tokenRecord.expiresAt < new Date()) {
+            throw new BadRequestException('Verification token has expired');
+        }
+
+        const nominatorVerification = await this.prisma.nominatorVerification.findUnique({
+            where: { id: tokenRecord.verificationId },
             include: {
-                nominatorVerification: {
+                nomination: {
                     include: {
-                        nomination: {
-                            include: {
-                                aspirant: true,
-                                nominatorVerification: true,
-                                guarantorVerifications: true,
-                            },
-                        },
+                        aspirant: true,
+                        nominatorVerification: true,
+                        guarantorVerifications: true,
                     },
                 },
             },
         });
 
-        if (!verificationRecord || !verificationRecord.nominatorVerification) {
+        if (!nominatorVerification) {
             throw new BadRequestException('Invalid verification token');
         }
-
-        if (verificationRecord.expiresAt < new Date()) {
-            throw new BadRequestException('Verification token has expired');
-        }
-
-        const nominatorVerification = verificationRecord.nominatorVerification;
 
         if (nominatorVerification.status !== VerificationStatus.PENDING) {
             throw new BadRequestException('This verification has already been processed');
@@ -76,35 +78,39 @@ export class NominatorVerificationService {
     }
 
     async getVerificationDetails(token: string) {
-        const verificationRecord = await this.prisma.verificationToken.findUnique({
+        const tokenRecord = await this.prisma.verificationToken.findUnique({
             where: { token },
+        });
+
+        if (!tokenRecord || tokenRecord.verificationType !== 'NOMINATOR') {
+            throw new BadRequestException('Invalid verification token');
+        }
+
+        const nominatorVerification = await this.prisma.nominatorVerification.findUnique({
+            where: { id: tokenRecord.verificationId },
             include: {
-                nominatorVerification: {
+                nomination: {
                     include: {
-                        nomination: {
-                            include: {
-                                aspirant: {
-                                    select: {
-                                        id: true,
-                                        name: true,
-                                        phone: true,
-                                        email: true,
-                                    },
-                                },
-                                nominatorVerification: {
-                                    select: {
-                                        name: true,
-                                        status: true,
-                                        verifiedAt: true,
-                                    },
-                                },
-                                guarantorVerifications: {
-                                    select: {
-                                        name: true,
-                                        status: true,
-                                        verifiedAt: true,
-                                    },
-                                },
+                        aspirant: {
+                            select: {
+                                id: true,
+                                name: true,
+                                phone: true,
+                                email: true,
+                            },
+                        },
+                        nominatorVerification: {
+                            select: {
+                                name: true,
+                                status: true,
+                                verifiedAt: true,
+                            },
+                        },
+                        guarantorVerifications: {
+                            select: {
+                                name: true,
+                                status: true,
+                                verifiedAt: true,
                             },
                         },
                     },
@@ -112,24 +118,24 @@ export class NominatorVerificationService {
             },
         });
 
-        if (!verificationRecord || !verificationRecord.nominatorVerification) {
+        if (!nominatorVerification) {
             throw new BadRequestException('Invalid verification token');
         }
 
-        const isExpired = verificationRecord.expiresAt < new Date();
+        const isExpired = tokenRecord.expiresAt < new Date();
 
         if (isExpired) {
             throw new BadRequestException('Verification token has expired');
         }
 
         return {
-            nomination: verificationRecord.nominatorVerification.nomination,
-            nominatorName: verificationRecord.nominatorVerification.name,
-            nominatorEmail: verificationRecord.nominatorVerification.email,
+            nomination: nominatorVerification.nomination,
+            nominatorName: nominatorVerification.name,
+            nominatorEmail: nominatorVerification.email,
             tokenType: TokenType.NOMINATOR_VERIFICATION,
             isExpired,
-            isAlreadyVerified: verificationRecord.nominatorVerification.status !== VerificationStatus.PENDING,
-            verificationStatus: verificationRecord.nominatorVerification.status,
+            isAlreadyVerified: nominatorVerification.status !== VerificationStatus.PENDING,
+            verificationStatus: nominatorVerification.status,
         };
     }
 }

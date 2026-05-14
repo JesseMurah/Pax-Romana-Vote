@@ -229,7 +229,7 @@ export class NominationReviewService {
                         phone: true,
                     },
                 },
-                EcReview: {
+                ecReviews: {
                     select: {
                         reviewerId: true,
                         approved: true,

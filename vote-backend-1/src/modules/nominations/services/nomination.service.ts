@@ -163,7 +163,8 @@ export class NominationService {
                 type: 'NOMINATOR_VERIFICATION',
                 email: nomination.nominatorVerification!.email,
                 expiresAt: new Date(Date.now() + 72 * 60 * 60 * 1000),
-                nominatorVerificationId: nomination.nominatorVerification!.id,
+                verificationId: nomination.nominatorVerification!.id,
+                verificationType: 'NOMINATOR' as const,
             },
         });
 
@@ -173,7 +174,8 @@ export class NominationService {
                 type: 'GUARANTOR_VERIFICATION',
                 email: nomination.guarantorVerifications[index].email,
                 expiresAt: new Date(Date.now() + 72 * 60 * 60 * 1000),
-                guarantorVerificationId: nomination.guarantorVerifications[index].id,
+                verificationId: nomination.guarantorVerifications[index].id,
+                verificationType: 'GUARANTOR' as const,
             })),
         });
 
@@ -193,36 +195,30 @@ export class NominationService {
     // Helper method to get pending verifications for manual email sending
     async getPendingVerifications() {
         const pendingTokens = await this.prisma.verificationToken.findMany({
-            where: {
-                expiresAt: {
-                    gt: new Date(),
-                },
-            },
-            include: {
-                nominatorVerification: {
-                    include: {
-                        nomination: {
-                            select: {
-                                nomineeName: true,
-                                nomineePosition: true,
-                            },
-                        },
-                    },
-                },
-                guarantorVerification: {
-                    include: {
-                        nomination: {
-                            select: {
-                                nomineeName: true,
-                                nomineePosition: true,
-                            },
-                        },
-                    },
-                },
-            },
+            where: { expiresAt: { gt: new Date() }, used: false },
         });
 
-        return pendingTokens;
+        return Promise.all(
+            pendingTokens.map(async (token) => {
+                if (token.verificationType === 'NOMINATOR') {
+                    const verification = await this.prisma.nominatorVerification.findUnique({
+                        where: { id: token.verificationId },
+                        include: {
+                            nomination: { select: { nomineeName: true, nomineePosition: true } },
+                        },
+                    });
+                    return { ...token, nominatorVerification: verification, guarantorVerification: null };
+                } else {
+                    const verification = await this.prisma.guarantorVerification.findUnique({
+                        where: { id: token.verificationId },
+                        include: {
+                            nomination: { select: { nomineeName: true, nomineePosition: true } },
+                        },
+                    });
+                    return { ...token, nominatorVerification: null, guarantorVerification: verification };
+                }
+            }),
+        );
     }
 
     async findAll(filters?: {

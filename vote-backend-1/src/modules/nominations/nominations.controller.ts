@@ -30,17 +30,27 @@ export class NominationController {
   async getVerificationData(@Param('token') token: string) {
     const verificationToken = await this.nominationService.prisma.verificationToken.findUnique({
       where: { token },
-      include: {
-        nominatorVerification: { include: { nomination: true } },
-        guarantorVerification: { include: { nomination: true } },
-      },
     });
 
     if (!verificationToken || verificationToken.used || new Date() > verificationToken.expiresAt) {
       throw new BadRequestException('Invalid or expired verification token');
     }
 
-    const nomination = verificationToken.nominatorVerification?.nomination || verificationToken.guarantorVerification?.nomination;
+    let nomination: { nomineeName: string; nomineePosition: any } | null = null;
+    if (verificationToken.verificationType === 'NOMINATOR') {
+      const nv = await this.nominationService.prisma.nominatorVerification.findUnique({
+        where: { id: verificationToken.verificationId },
+        include: { nomination: true },
+      });
+      nomination = nv?.nomination ?? null;
+    } else {
+      const gv = await this.nominationService.prisma.guarantorVerification.findUnique({
+        where: { id: verificationToken.verificationId },
+        include: { nomination: true },
+      });
+      nomination = gv?.nomination ?? null;
+    }
+
     if (!nomination) {
       throw new BadRequestException('No associated nomination found');
     }
@@ -56,10 +66,6 @@ export class NominationController {
   async confirmVerification(@Param('token') token: string, @Body('comments') comments?: string) {
     const verificationToken = await this.nominationService.prisma.verificationToken.findUnique({
       where: { token },
-      include: {
-        nominatorVerification: true,
-        guarantorVerification: true,
-      },
     });
 
     if (!verificationToken || verificationToken.used || new Date() > verificationToken.expiresAt) {
@@ -67,16 +73,30 @@ export class NominationController {
     }
 
     const updateData = { status: 'APPROVED', comments, verifiedAt: new Date() };
-    if (verificationToken.nominatorVerification) {
-      await this.nominationService.prisma.nominatorVerification.update({
-        where: { id: verificationToken.nominatorVerification.id },
-        data: updateData,
+    let nominationId: string | undefined;
+
+    if (verificationToken.verificationType === 'NOMINATOR') {
+      const nv = await this.nominationService.prisma.nominatorVerification.findUnique({
+        where: { id: verificationToken.verificationId },
       });
-    } else if (verificationToken.guarantorVerification) {
-      await this.nominationService.prisma.guarantorVerification.update({
-        where: { id: verificationToken.guarantorVerification.id },
-        data: updateData,
+      if (nv) {
+        await this.nominationService.prisma.nominatorVerification.update({
+          where: { id: nv.id },
+          data: updateData,
+        });
+        nominationId = nv.nominationId;
+      }
+    } else {
+      const gv = await this.nominationService.prisma.guarantorVerification.findUnique({
+        where: { id: verificationToken.verificationId },
       });
+      if (gv) {
+        await this.nominationService.prisma.guarantorVerification.update({
+          where: { id: gv.id },
+          data: updateData,
+        });
+        nominationId = gv.nominationId;
+      }
     }
 
     await this.nominationService.prisma.verificationToken.update({
@@ -86,7 +106,7 @@ export class NominationController {
 
     // Check if all verifications are complete
     const nomination = await this.nominationService.prisma.nomination.findUnique({
-      where: { id: verificationToken.nominatorVerification?.nominationId || verificationToken.guarantorVerification?.nominationId },
+      where: { id: nominationId },
       include: { nominatorVerification: true, guarantorVerifications: true },
     });
 
@@ -121,10 +141,6 @@ export class NominationController {
   async declineVerification(@Param('token') token: string, @Body('comments') comments?: string) {
     const verificationToken = await this.nominationService.prisma.verificationToken.findUnique({
       where: {token},
-      include: {
-        nominatorVerification: true,
-        guarantorVerification: true,
-      },
     });
 
     if (!verificationToken || verificationToken.used || new Date() > verificationToken.expiresAt) {
@@ -134,18 +150,28 @@ export class NominationController {
     const updateData = {status: 'REJECTED', comments, declinedAt: new Date()};
     let nominationId: string | undefined;
 
-    if (verificationToken.nominatorVerification) {
-      await this.nominationService.prisma.nominatorVerification.update({
-        where: {id: verificationToken.nominatorVerification.id},
-        data: updateData,
+    if (verificationToken.verificationType === 'NOMINATOR') {
+      const nv = await this.nominationService.prisma.nominatorVerification.findUnique({
+        where: { id: verificationToken.verificationId },
       });
-      nominationId = verificationToken.nominatorVerification.nominationId;
-    } else if (verificationToken.guarantorVerification) {
-      await this.nominationService.prisma.guarantorVerification.update({
-        where: {id: verificationToken.guarantorVerification.id},
-        data: updateData,
+      if (nv) {
+        await this.nominationService.prisma.nominatorVerification.update({
+          where: {id: nv.id},
+          data: updateData,
+        });
+        nominationId = nv.nominationId;
+      }
+    } else {
+      const gv = await this.nominationService.prisma.guarantorVerification.findUnique({
+        where: { id: verificationToken.verificationId },
       });
-      nominationId = verificationToken.guarantorVerification.nominationId;
+      if (gv) {
+        await this.nominationService.prisma.guarantorVerification.update({
+          where: {id: gv.id},
+          data: updateData,
+        });
+        nominationId = gv.nominationId;
+      }
     }
 
     await this.nominationService.prisma.verificationToken.update({
