@@ -98,9 +98,7 @@ export class AdminNotificationsService {
             [Candidate_Position.GEN_SECRETARY]: 'General Secretary',
             [Candidate_Position.FINANCIAL_SECRETARY]: 'Financial Secretary',
             [Candidate_Position.ORGANIZING_SECRETARY_MAIN]: 'Organizing Secretary (Main)',
-            [Candidate_Position.ORGANIZING_SECRETARY_ASST]: 'Organizing Secretary (Assistant)',
             [Candidate_Position.PRO_MAIN]: 'PRO (Main)',
-            [Candidate_Position.PRO_ASSISTANT]: 'PRO (Assistant)',
             [Candidate_Position.WOMEN_COMMISSIONER]: 'Women Commissioner'
         };
 

@@ -3,20 +3,54 @@ import {
   Get,
   Post,
   Body,
-  Patch,
-  Param,
-  Delete,
   HttpCode,
   HttpStatus,
   UseGuards,
-  Logger
+  Logger,
+  BadRequestException
 } from '@nestjs/common';
 import { AuthService } from './auth.service';
-import {AdminLoginDto, LoginDto, RefreshTokenDto, VerifySmsDto} from "./dto/login.dto";
-import {AuthResponseDto, VerificationResponseDto} from "./dto/auth-response.dto";
-import {JwtAuthGuard} from "./guards/jwt-auth.guard";
-import { ThrottlerGuard } from '@nestjs/throttler'
-import {CurrentUser} from "./decorators/current-user.decorator";
+import { AdminLoginDto, RefreshTokenDto } from "./dto/login.dto";
+import { JwtAuthGuard } from "./guards/jwt-auth.guard";
+import { ThrottlerGuard } from '@nestjs/throttler';
+import { CurrentUser } from "./decorators/current-user.decorator";
+import { IsEmail, IsString, MinLength } from 'class-validator';
+
+// DTOs for the new email-based endpoints
+class SendVerificationCodeDto {
+  @IsEmail()
+  email: string;
+
+  @IsString()
+  name?: string;
+}
+
+class VerifyEmailCodeDto {
+  @IsEmail()
+  email: string;
+
+  @IsString()
+  @MinLength(6)
+  verificationCode: string;
+}
+
+class PasswordResetRequestDto {
+  @IsEmail()
+  email: string;
+}
+
+class PasswordResetDto {
+  @IsEmail()
+  email: string;
+
+  @IsString()
+  @MinLength(6)
+  resetToken: string;
+
+  @IsString()
+  @MinLength(8)
+  newPassword: string;
+}
 
 @Controller('auth')
 @UseGuards(ThrottlerGuard)
@@ -25,32 +59,50 @@ export class AuthController {
 
   constructor(private authService: AuthService) {}
 
+  // Send email verification code
   @Post('send-code')
   @HttpCode(HttpStatus.OK)
-  async sendVerificationCode(@Body() loginDto: LoginDto): Promise<VerificationResponseDto> {
+  async sendVerificationCode(@Body() dto: SendVerificationCodeDto): Promise<{
+    action: string;
+    message: string;
+    success: boolean;
+    timeRemaining: number;
+    verificationToken: string;
+    reason: string;
+    then: undefined
+  }> {
     try {
-      //@ts-ignore
-      return await this.authService.sendVerificationCode(loginDto);
+      return await this.authService.sendVerificationCode(dto.email, dto.name);
     } catch (error) {
       this.logger.error('Failed to send verification code:', error);
       throw error;
     }
   }
 
-  @Post('verify-login')
+  // Verify email code and login
+  @Post('verify-email')
   @HttpCode(HttpStatus.OK)
-  async verifyAndLogin(@Body() verifySmsDto: VerifySmsDto): Promise<AuthResponseDto> {
+  async verifyEmailAndLogin(@Body() dto: VerifyEmailCodeDto): Promise<{
+    access_token: string;
+    refresh_token: string;
+    user: { id: any; name: any; email: any; role: any; emailVerified: boolean; isActive: any }
+  }> {
     try {
-      return await this.authService.verifyAndLogin(verifySmsDto);
+      return await this.authService.verifyEmailAndLogin(dto.email, dto.verificationCode);
     } catch (error) {
-      this.logger.error('Failed to verify and login:', error);
+      this.logger.error('Failed to verify email and login:', error);
       throw error;
     }
   }
 
+  // Direct admin login with email/password
   @Post('admin-login')
   @HttpCode(HttpStatus.OK)
-  async adminLogin(@Body() adminLoginDto: AdminLoginDto): Promise<AuthResponseDto> {
+  async adminLogin(@Body() adminLoginDto: AdminLoginDto): Promise<{
+    access_token: string;
+    refresh_token: string;
+    user: { id: any; name: any; email: any; role: any; emailVerified: any; isActive: any }
+  }> {
     try {
       return await this.authService.adminLogin(adminLoginDto);
     } catch (error) {
@@ -59,6 +111,7 @@ export class AuthController {
     }
   }
 
+  // Refresh token
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   async refreshToken(@Body() refreshTokenDto: RefreshTokenDto): Promise<{ access_token: string }> {
@@ -70,6 +123,7 @@ export class AuthController {
     }
   }
 
+  // Logout
   @Post('logout')
   @UseGuards(JwtAuthGuard)
   @HttpCode(HttpStatus.OK)
@@ -82,22 +136,50 @@ export class AuthController {
     }
   }
 
+  // Get user profile
   @Get('profile')
   @UseGuards(JwtAuthGuard)
   async getProfile(@CurrentUser() user: any) {
     try {
-      return {
-        id: user.id,
-        name: user.name,
-        phone: user.phone,
-        email: user.email,
-        role: user.role,
-        phoneVerified: user.phoneVerified,
-        emailVerified: user.emailVerified,
-      };
+      return await this.authService.getProfile(user.id);
     } catch (error) {
       this.logger.error('Failed to get profile:', error);
       throw error;
     }
+  }
+
+  // Request password reset
+  @Post('forgot-password')
+  @HttpCode(HttpStatus.OK)
+  async requestPasswordReset(@Body() dto: PasswordResetRequestDto): Promise<{ message: string }> {
+    try {
+      return await this.authService.requestPasswordReset(dto.email);
+    } catch (error) {
+      this.logger.error('Failed to request password reset:', error);
+      throw error;
+    }
+  }
+
+  // Reset password with token
+  @Post('reset-password')
+  @HttpCode(HttpStatus.OK)
+  async resetPassword(@Body() dto: PasswordResetDto): Promise<{ message: string }> {
+    try {
+      return await this.authService.resetPassword(dto.email, dto.resetToken, dto.newPassword);
+    } catch (error) {
+      this.logger.error('Failed to reset password:', error);
+      throw error;
+    }
+  }
+
+  // Health check endpoint
+  @Get('health')
+  @HttpCode(HttpStatus.OK)
+  async healthCheck() {
+    return {
+      status: 'ok',
+      timestamp: new Date().toISOString(),
+      service: 'auth',
+    };
   }
 }

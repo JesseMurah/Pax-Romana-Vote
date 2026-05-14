@@ -6,7 +6,6 @@ import {UserRoles} from "../../users/enums/user-roles.enum";
 @Injectable()
 export class RolesGuard implements CanActivate {
     constructor(private reflector: Reflector) {
-        console.log('Instantiating RolesGuard');
     }
 
     canActivate(context: ExecutionContext): boolean {

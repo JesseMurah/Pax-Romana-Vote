@@ -2,11 +2,11 @@ import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@n
 import { NotificationService } from './notification.service';
 import { RolesGuard } from "../auth/guards/roles.guard";
 import { Roles } from "../auth/decorators/roles.decorator";
-import { UserRoles } from "../users/enums/user-roles.enum";
+import { UserRole } from "@prisma/client/index";
 
 @Controller('notifications/test')
 // @UseGuards(RolesGuard)
-@Roles(UserRoles.SUPER_ADMIN)
+@Roles(UserRole.SUPER_ADMIN)
 export class NotificationTestController {
   constructor(private notificationsService: NotificationService) {}
 

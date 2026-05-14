@@ -68,7 +68,7 @@ export class User {
     }
 
     canNominate(): boolean {
-        return this.phoneVerified && this.isActive; // Using phoneVerified instead of isVerified
+        return this.phoneVerified && this.isActive;
     }
 
     canVote(): boolean {

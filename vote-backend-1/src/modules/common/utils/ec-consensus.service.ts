@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../../../db';
 import { NominationStatus, UserRole } from '@prisma/client';
-import { AdminActions } from '../../common/enums/nomination-status.enum';
 
 @Injectable()
 export class EcConsensusService {
@@ -62,5 +61,39 @@ export class EcConsensusService {
             isConsensusReached,
             finalDecision,
         };
+    }
+
+    async getAllConsensusStatuses() {
+        const nominations = await this.prisma.nomination.findMany({
+            where: {
+                status: NominationStatus.VERIFIED,
+            },
+            select: {
+                id: true,
+                nomineePosition: true,
+                nomineeName: true,
+                //@ts-ignore
+                aspirant: {
+                    select: {
+                        name: true,
+                    },
+                },
+            },
+        });
+
+        const consensusStatuses = await Promise.all(
+            nominations.map(async (nomination) => {
+                const consensus = await this.checkConsensus(nomination.id);
+                return {
+                    ...consensus,
+                    position: nomination.nomineePosition,
+                    //@ts-ignore
+                    aspirantName: nomination.aspirant.name,
+                    nomineeName: nomination.nomineeName,
+                };
+            }),
+        );
+
+        return consensusStatuses;
     }
 }

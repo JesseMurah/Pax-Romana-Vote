@@ -1,9 +1,8 @@
-import {BadRequestException, Injectable, NotFoundException} from "@nestjs/common";
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../../db';
 import { DeadlineService } from '../../common/utils/deadline.service';
 import { CreateNominationDto } from '../dto/create-nomination.dto';
 import { NominationStatus, Candidate_Position, UserRole } from '@prisma/client/index';
-// import { NotificationService } from "../../notifications/notification.service"; // Commented out since we're not using it
 import { v4 as uuidv4 } from 'uuid';
 import { UsersService } from "../../users/users.service";
 import { CloudinaryService } from '../../file-upload/services/cloudinary.service';
@@ -16,9 +15,7 @@ function mapPositionToEnum(position: string): Candidate_Position {
         'General Secretary': Candidate_Position.GEN_SECRETARY,
         'Financial Secretary': Candidate_Position.FINANCIAL_SECRETARY,
         'Organizing Secretary Main': Candidate_Position.ORGANIZING_SECRETARY_MAIN,
-        'Organizing Secretary Assistant': Candidate_Position.ORGANIZING_SECRETARY_ASST,
         'PRO Main': Candidate_Position.PRO_MAIN,
-        'PRO Assistant': Candidate_Position.PRO_ASSISTANT,
         'Women Commissioner': Candidate_Position.WOMEN_COMMISSIONER,
     };
     return positionMap[position] || Candidate_Position.PRESIDENT;
@@ -26,21 +23,21 @@ function mapPositionToEnum(position: string): Candidate_Position {
 
 @Injectable()
 export class NominationService {
+    private readonly logger = new Logger(NominationService.name);
+
     constructor(
         public prisma: PrismaService,
-        // public notificationService: NotificationService, // Commented out
         private deadlineService: DeadlineService,
         public usersService: UsersService,
         private cloudinaryService: CloudinaryService,
-    ) {
-        console.log('Instantiating NominationService');
-    }
+    ) {}
 
     async createNomination(createNominationDto: CreateNominationDto, file?: Express.Multer.File, userId?: string) {
         if (!this.deadlineService.isNominationOpen()) {
             throw new BadRequestException('Nomination period has ended');
         }
 
+        //@ts-ignore
         let user: IUser | null = await this.usersService.findByEmail(createNominationDto.aspirantEmail);
         if (!user) {
             //@ts-ignore
@@ -166,7 +163,8 @@ export class NominationService {
                 type: 'NOMINATOR_VERIFICATION',
                 email: nomination.nominatorVerification!.email,
                 expiresAt: new Date(Date.now() + 72 * 60 * 60 * 1000),
-                nominatorVerificationId: nomination.nominatorVerification!.id,
+                verificationId: nomination.nominatorVerification!.id,
+                verificationType: 'NOMINATOR' as const,
             },
         });
 
@@ -176,7 +174,8 @@ export class NominationService {
                 type: 'GUARANTOR_VERIFICATION',
                 email: nomination.guarantorVerifications[index].email,
                 expiresAt: new Date(Date.now() + 72 * 60 * 60 * 1000),
-                guarantorVerificationId: nomination.guarantorVerifications[index].id,
+                verificationId: nomination.guarantorVerifications[index].id,
+                verificationType: 'GUARANTOR' as const,
             })),
         });
 
@@ -184,14 +183,11 @@ export class NominationService {
         // The verification tokens and emails are stored in the database for your manual use
 
         // Log the verification details for manual processing
-        console.log('=== NOMINATION CREATED - MANUAL EMAIL NEEDED ===');
-        console.log('Nominator Email:', nomination.nominatorVerification!.email);
-        console.log('Nominator Token:', nominatorToken);
-        console.log('Guarantor Emails and Tokens:');
-        nomination.guarantorVerifications.forEach((guarantor, index) => {
-            console.log(`  - ${guarantor.email}: ${guarantorTokens[index]}`);
+        this.logger.warn('Nomination created — manual verification emails required. Check DB for tokens.', {
+            nominationId: nomination.id,
+            nominatorEmail: nomination.nominatorVerification!.email,
+            guarantorEmails: nomination.guarantorVerifications.map((g) => g.email),
         });
-        console.log('===============================================');
 
         return nomination;
     }
@@ -199,36 +195,30 @@ export class NominationService {
     // Helper method to get pending verifications for manual email sending
     async getPendingVerifications() {
         const pendingTokens = await this.prisma.verificationToken.findMany({
-            where: {
-                expiresAt: {
-                    gt: new Date(),
-                },
-            },
-            include: {
-                nominatorVerification: {
-                    include: {
-                        nomination: {
-                            select: {
-                                nomineeName: true,
-                                nomineePosition: true,
-                            },
-                        },
-                    },
-                },
-                guarantorVerification: {
-                    include: {
-                        nomination: {
-                            select: {
-                                nomineeName: true,
-                                nomineePosition: true,
-                            },
-                        },
-                    },
-                },
-            },
+            where: { expiresAt: { gt: new Date() }, used: false },
         });
 
-        return pendingTokens;
+        return Promise.all(
+            pendingTokens.map(async (token) => {
+                if (token.verificationType === 'NOMINATOR') {
+                    const verification = await this.prisma.nominatorVerification.findUnique({
+                        where: { id: token.verificationId },
+                        include: {
+                            nomination: { select: { nomineeName: true, nomineePosition: true } },
+                        },
+                    });
+                    return { ...token, nominatorVerification: verification, guarantorVerification: null };
+                } else {
+                    const verification = await this.prisma.guarantorVerification.findUnique({
+                        where: { id: token.verificationId },
+                        include: {
+                            nomination: { select: { nomineeName: true, nomineePosition: true } },
+                        },
+                    });
+                    return { ...token, nominatorVerification: null, guarantorVerification: verification };
+                }
+            }),
+        );
     }
 
     async findAll(filters?: {

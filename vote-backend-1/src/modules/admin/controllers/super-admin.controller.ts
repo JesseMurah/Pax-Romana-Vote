@@ -1,23 +1,30 @@
 import { AdminService } from "../services/admin.service";
 import { UsersService } from "../../users/users.service";
-import { Body, Controller, Get, Injectable, Param, Patch, Post, Req, UseGuards } from "@nestjs/common";
+import { Body, Controller, Get, Param, Patch, Post, Req, UseGuards } from "@nestjs/common";
 import { AuthGuard } from "@nestjs/passport";
 import { JwtAuthGuard } from "../../auth/guards/jwt-auth.guard";
 import { Roles } from "../../auth/decorators/roles.decorator";
-import { UserRoles } from "../../users/enums/user-roles.enum";
+import { UserRole } from '@prisma/client/index'; // Use the same enum as in AuthService
 import { CreateAdminDTO } from "../../users/dto/create-admin.dto";
-import {RolesGuard} from "../../auth/guards/roles.guard";
+import { RolesGuard } from "../../auth/guards/roles.guard";
 
+interface AuthenticatedRequest extends Request {
+    user: {
+        id: string;
+        email: string;
+        role: UserRole;
+        name: string;
+    };
+}
 
 @Controller('admin/super-admin')
-// @UseGuards(AuthGuard, JwtAuthGuard, RolesGuard)
-@Roles(UserRoles.SUPER_ADMIN)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(UserRole.SUPER_ADMIN) // Use UserRole enum
 export class SuperAdminController {
     constructor(
         private adminService: AdminService,
         private userService: UsersService
     ) {}
-
 
     @Get('users')
     async getAdminUsers() {
@@ -25,7 +32,7 @@ export class SuperAdminController {
     }
 
     @Post('users')
-    async createAdmin(@Body() createAdminDto: CreateAdminDTO, @Req() req) {
+    async createAdmin(@Body() createAdminDto: CreateAdminDTO, @Req() req: AuthenticatedRequest) {
         const result = await this.userService.createAdmin(createAdminDto);
 
         await this.adminService.logAdminAction(
@@ -41,7 +48,7 @@ export class SuperAdminController {
     async updateUserStatus(
         @Param('id') userId: string,
         @Body() { isActive }: { isActive: boolean },
-        @Req() req,
+        @Req() req: AuthenticatedRequest,
     ) {
         const result = await this.userService.updateUserStatus(userId, isActive);
 

@@ -15,7 +15,4 @@ import {FileUploadModule} from "../file-upload/file-upload.module";
     exports: [NominationService],
 })
 export class NominationModule {
-    constructor() {
-        console.log('NominationsModule dependencies:', { DbModule: !!DbModule });
-    }
 }

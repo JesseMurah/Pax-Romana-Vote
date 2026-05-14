@@ -9,8 +9,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 /// ============= ENUMS =============
@@ -20,15 +21,11 @@ enum Candidate_Position {
   GEN_SECRETARY
   FINANCIAL_SECRETARY
   ORGANIZING_SECRETARY_MAIN
-  ORGANIZING_SECRETARY_ASST
   PRO_MAIN
-  PRO_ASSISTANT
   WOMEN_COMMISSIONER
 
   @@map("position")
 }
-
-// Add this field later: WOMEN's COMMISSIONEr
 
 enum Gender {
   MALE
@@ -55,6 +52,11 @@ enum TokenType {
   GUARANTOR_VERIFICATION
   ONE_VERIFICATION
   PASSWORD_RESET
+}
+
+enum VerificationTargetType {
+  NOMINATOR
+  GUARANTOR
 }
 
 enum UserRole {
@@ -99,22 +101,18 @@ model User {
   subgroup              String?
   college               String?
   phoneVerified         Boolean                 @default(false)
+  emailVerifiedAt       DateTime?
   emailVerified         Boolean                 @default(false)
   isActive              Boolean                 @default(true)
   hasVoted              Boolean                 @default(false)
-  inkVerified           Boolean                 @default(false)
   lastLoginAt           DateTime?
   createdAt             DateTime                @default(now())
   updatedAt             DateTime                @updatedAt
   nominations           Nomination[]            @relation("Aspirant")
   ecReviews             EcReview[]              @relation("Reviewer")
-  Nomination            Nomination[]
-  NominatorVerification NominatorVerification[]
-  GuarantorVerification GuarantorVerification[]
-  EcReview              EcReview[]
-  VotingSession         VotingSession[]
-  AuditLog              AuditLog[]
-  Subgroup              Subgroup?               @relation(fields: [subgroupId], references: [id])
+  votingSessions        VotingSession[]
+  auditLogs             AuditLog[]
+  subgroupRef           Subgroup?               @relation(fields: [subgroupId], references: [id])
   subgroupId            String?
 }
 
@@ -156,13 +154,11 @@ model Nomination {
   rejectionReason        String?
   nominatorVerification  NominatorVerification?
   guarantorVerifications GuarantorVerification[]
-  EcReview               EcReview[]
+  ecReviews              EcReview[]
   candidate              Candidate?
   createdAt              DateTime                @default(now())
   updatedAt              DateTime                @updatedAt
-  User                   User?                   @relation(fields: [userId], references: [id])
-  userId                 String?
-  Subgroup               Subgroup?               @relation(fields: [subgroupId], references: [id])
+  subgroupRef            Subgroup?               @relation(fields: [subgroupId], references: [id])
   subgroupId             String?
 }
 
@@ -182,9 +178,6 @@ model NominatorVerification {
   declinedAt        DateTime?
   createdAt         DateTime           @default(now())
   updatedAt         DateTime           @updatedAt
-  verificationToken VerificationToken?
-  User              User?              @relation(fields: [userId], references: [id])
-  userId            String?
 }
 
 model GuarantorVerification {
@@ -202,10 +195,6 @@ model GuarantorVerification {
   declinedAt          DateTime?
   createdAt           DateTime           @default(now())
   updatedAt           DateTime           @updatedAt
-  verificationToken   VerificationToken?
-  verificationTokenId String?            @unique
-  User                User?              @relation(fields: [userId], references: [id])
-  userId              String?
 }
 
 model EcReview {
@@ -218,25 +207,21 @@ model EcReview {
   comments     String?
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
-  User         User?      @relation(fields: [userId], references: [id])
-  userId       String?
 
   @@unique([nominationId, reviewerId])
 }
 
 model VerificationToken {
-  id                      String                 @id @default(cuid())
-  token                   String                 @unique
-  type                    TokenType
-  email                   String?
-  phone                   String?
-  expiresAt               DateTime
-  used                    Boolean                @default(false)
-  createdAt               DateTime               @default(now())
-  nominatorVerification   NominatorVerification? @relation(fields: [nominatorVerificationId], references: [id])
-  guarantorVerification   GuarantorVerification? @relation(fields: [guarantorVerificationId], references: [id])
-  nominatorVerificationId String?                @unique
-  guarantorVerificationId String?                @unique
+  id               String                 @id @default(cuid())
+  token            String                 @unique
+  type             TokenType
+  email            String?
+  phone            String?
+  expiresAt        DateTime
+  used             Boolean                @default(false)
+  createdAt        DateTime               @default(now())
+  verificationId   String
+  verificationType VerificationTargetType
 }
 
 // ============= VOTING MODELS =============
