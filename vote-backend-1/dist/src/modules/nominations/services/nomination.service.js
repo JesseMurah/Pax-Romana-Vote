@@ -24,9 +24,7 @@ function mapPositionToEnum(position) {
         'General Secretary': index_1.Candidate_Position.GEN_SECRETARY,
         'Financial Secretary': index_1.Candidate_Position.FINANCIAL_SECRETARY,
         'Organizing Secretary Main': index_1.Candidate_Position.ORGANIZING_SECRETARY_MAIN,
-        'Organizing Secretary Assistant': index_1.Candidate_Position.ORGANIZING_SECRETARY_ASST,
         'PRO Main': index_1.Candidate_Position.PRO_MAIN,
-        'PRO Assistant': index_1.Candidate_Position.PRO_ASSISTANT,
         'Women Commissioner': index_1.Candidate_Position.WOMEN_COMMISSIONER,
     };
     return positionMap[position] || index_1.Candidate_Position.PRESIDENT;

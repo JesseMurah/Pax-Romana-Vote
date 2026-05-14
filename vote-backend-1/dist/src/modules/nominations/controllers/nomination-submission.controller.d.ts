@@ -10,9 +10,9 @@ export declare class NominationsController {
             nominatorVerification: {
                 subgroup: string;
                 programme: string;
+                level: string;
                 name: string;
                 email: string;
-                level: string;
                 id: string;
                 createdAt: Date;
                 updatedAt: Date;

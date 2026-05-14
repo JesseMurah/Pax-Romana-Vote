@@ -43,12 +43,12 @@ export declare class AdminService {
     updateUserRole(adminId: string, targetUserId: string, newRole: UserRole): Promise<{
         subgroup: string | null;
         programme: string | null;
+        level: string | null;
         name: string;
         phone: string | null;
         email: string;
         password: string | null;
         role: import(".prisma/client").$Enums.UserRole;
-        level: string | null;
         college: string | null;
         phoneVerified: boolean;
         emailVerified: boolean;
@@ -56,6 +56,7 @@ export declare class AdminService {
         inkVerified: boolean;
         id: string;
         hasVoted: boolean;
+        emailVerifiedAt: Date | null;
         lastLoginAt: Date | null;
         createdAt: Date;
         updatedAt: Date;
@@ -64,12 +65,12 @@ export declare class AdminService {
     deactivateUser(adminId: string, targetUserId: string): Promise<{
         subgroup: string | null;
         programme: string | null;
+        level: string | null;
         name: string;
         phone: string | null;
         email: string;
         password: string | null;
         role: import(".prisma/client").$Enums.UserRole;
-        level: string | null;
         college: string | null;
         phoneVerified: boolean;
         emailVerified: boolean;
@@ -77,6 +78,7 @@ export declare class AdminService {
         inkVerified: boolean;
         id: string;
         hasVoted: boolean;
+        emailVerifiedAt: Date | null;
         lastLoginAt: Date | null;
         createdAt: Date;
         updatedAt: Date;

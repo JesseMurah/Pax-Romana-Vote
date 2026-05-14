@@ -12,21 +12,65 @@ export class EmailService {
     private transporter: nodemailer.Transporter;
 
     constructor(private configService: ConfigService) {
+        const smtpPort = parseInt(this.configService.get('SMTP_PORT', '587'));
+
         this.transporter = nodemailer.createTransport({
-            host: this.configService.get('SMTP_HOST', 'smtp.gmail.com'),
-            port: parseInt(this.configService.get('SMTP_PORT', '587')),
-            secure: false,
+            service: 'gmail', // Use Gmail service instead of manual config
             auth: {
                 user: this.configService.get('SMTP_USER'),
                 pass: this.configService.get('SMTP_PASS'),
             },
-            tls: {
-                rejectUnauthorized: false,
-            },
+            // Alternative manual configuration if service doesn't work
+            // host: 'smtp.gmail.com',
+            // port: 587,
+            // secure: false, // true for 465, false for other ports like 587
+            // auth: {
+            //     user: this.configService.get('SMTP_USER'),
+            //     pass: this.configService.get('SMTP_PASS'),
+            // },
+            // tls: {
+            //     ciphers: 'SSLv3',
+            //     rejectUnauthorized: false,
+            // },
+
+            // Connection settings
+            connectionTimeout: 60000,
+            greetingTimeout: 30000,
+            socketTimeout: 60000,
+
+            // Pool settings
+            pool: true,
+            maxConnections: 5,
+            maxMessages: 100,
+
+            // Rate limiting
+            rateDelta: 20000,
+            rateLimit: 5,
         });
+
+        // Verify the connection configuration with delay
+        this.delayedVerifyConnection();
     }
 
+    private async delayedVerifyConnection(): Promise<void> {
+        // Add a small delay to ensure the service is ready
+        setTimeout(async () => {
+            try {
+                await this.transporter.verify();
+                this.logger.log('SMTP connection verified successfully');
+            } catch (error) {
+                this.logger.error('SMTP connection verification failed:', error);
+                this.logger.error('Please check your email configuration');
 
+                // Log helpful debugging info
+                this.logger.error('Debugging info:');
+                this.logger.error(`SMTP_HOST: ${this.configService.get('SMTP_HOST')}`);
+                this.logger.error(`SMTP_PORT: ${this.configService.get('SMTP_PORT')}`);
+                this.logger.error(`SMTP_USER: ${this.configService.get('SMTP_USER')}`);
+                this.logger.error('Make sure you are using an App Password, not your regular Gmail password!');
+            }
+        }, 2000);
+    }
 
     async sendEmail(emailDto: EmailMessageDto): Promise<{ success: boolean; messageId?: string; error?: string }> {
         try {
@@ -79,10 +123,8 @@ export class EmailService {
     }
 
     private getTemplatePath(templateName: string): string {
-        // Ensure the template name has .hbs extension
         const templateFileName = templateName.endsWith('.hbs') ? templateName : `${templateName}.hbs`;
 
-        // Try multiple possible locations
         const possiblePaths = [
             path.join(process.cwd(), 'src', 'modules', 'notifications', 'templates', 'email', templateFileName),
             path.join(process.cwd(), 'dist', 'src', 'modules', 'notifications', 'templates', 'email', templateFileName),
@@ -101,7 +143,6 @@ export class EmailService {
         throw new Error(`Template file not found: ${templateFileName}`);
     }
 
-
     async sendNominatorVerificationEmail(to: string, data: any): Promise<void> {
         const result = await this.sendEmail({
             to,
@@ -111,20 +152,23 @@ export class EmailService {
         });
 
         if (!result.success) {
-            throw new Error(`Failed to send nominator verification email to ${to}`);
+            throw new Error(`Failed to send nominator verification email to ${to}: ${result.error}`);
         }
     }
 
     async sendGuarantorVerificationEmail(to: string, data: any): Promise<void> {
-        await this.sendEmail({
+        const result = await this.sendEmail({
             to,
             subject: 'Guarantor Verification Required - Pax Romana KNUST',
             template: 'guarantor-verification',
             templateData: data,
         });
+
+        if (!result.success) {
+            throw new Error(`Failed to send guarantor verification email to ${to}: ${result.error}`);
+        }
     }
 
-    // FIXED: Updated to include nominee name parameter
     async sendNominationStatusEmail(email: string, nomineeName: string, status: string, reason?: string): Promise<boolean> {
         const result = await this.sendEmail({
             to: email,
@@ -141,7 +185,6 @@ export class EmailService {
         return result.success;
     }
 
-    // ADDED: Additional email methods for completeness
     async sendNominationConfirmationEmail(email: string, nominationData: any): Promise<boolean> {
         const result = await this.sendEmail({
             to: email,
@@ -184,7 +227,6 @@ export class EmailService {
         return result.success;
     }
 
-    // ADDED: Admin notification methods
     async sendAdminNotificationEmail(emails: string[], subject: string, data: any): Promise<boolean> {
         try {
             const promises = emails.map(email =>

@@ -19,6 +19,12 @@ import { DbModule, PrismaService } from '../db';
 import { JwtAuthGuard } from './modules/auth/guards/jwt-auth.guard';
 import { RolesGuard } from './modules/auth/guards/roles.guard';
 import {CustomThrottlerGuard} from "./throttler.guard";
+import {CandidatesModule} from "./modules/candidates/candidates.module";
+import {ResultsModule} from "./modules/results/results.module";
+import {RealTimeModule} from "./modules/real-time/real-time.module";
+import {CacheModule} from "./modules/caches/cache.module";
+import {VotingModule} from "./modules/voting/voting.module";
+import {SupabaseModule} from "./modules/supabase";
 
 
 // NOTE: 'prisma/.env', // Load Prisma-specific env file
@@ -51,6 +57,12 @@ import {CustomThrottlerGuard} from "./throttler.guard";
         AdminModule,
         FileUploadModule,
         DbModule,
+        CandidatesModule,
+        ResultsModule,
+        RealTimeModule,
+        CacheModule,
+        VotingModule,
+        SupabaseModule,
     ],
     controllers: [AppController],
     providers: [

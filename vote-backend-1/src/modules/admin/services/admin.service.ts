@@ -54,11 +54,11 @@ export class AdminService {
             select: {
                 id: true,
                 name: true,
-                phone: true, // Use phone instead of username
+                phone: true,
                 email: true,
                 role: true,
                 isActive: true,
-                lastLoginAt: true, // Correct field name from your schema
+                lastLoginAt: true,
                 createdAt: true,
             },
         });

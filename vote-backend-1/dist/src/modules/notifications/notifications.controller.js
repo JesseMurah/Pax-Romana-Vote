@@ -16,7 +16,7 @@ exports.NotificationTestController = void 0;
 const common_1 = require("@nestjs/common");
 const notification_service_1 = require("./notification.service");
 const roles_decorator_1 = require("../auth/decorators/roles.decorator");
-const user_roles_enum_1 = require("../users/enums/user-roles.enum");
+const index_1 = require("@prisma/client/index");
 let NotificationTestController = class NotificationTestController {
     notificationsService;
     constructor(notificationsService) {
@@ -57,7 +57,7 @@ __decorate([
 ], NotificationTestController.prototype, "testVerificationCode", null);
 exports.NotificationTestController = NotificationTestController = __decorate([
     (0, common_1.Controller)('notifications/test'),
-    (0, roles_decorator_1.Roles)(user_roles_enum_1.UserRoles.SUPER_ADMIN),
+    (0, roles_decorator_1.Roles)(index_1.UserRole.SUPER_ADMIN),
     __metadata("design:paramtypes", [notification_service_1.NotificationService])
 ], NotificationTestController);
 //# sourceMappingURL=notifications.controller.js.map

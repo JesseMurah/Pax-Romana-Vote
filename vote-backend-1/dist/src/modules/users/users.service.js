@@ -13,27 +13,17 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.UsersService = void 0;
 const common_1 = require("@nestjs/common");
 const db_1 = require("../../../db");
-const user_roles_enum_1 = require("./enums/user-roles.enum");
+const client_1 = require("@prisma/client");
 const bcrypt = require("bcrypt");
-const user_entity_1 = require("./entities/user.entity");
-const index_1 = require("@prisma/client/index");
 let UsersService = UsersService_1 = class UsersService {
     prisma;
     logger = new common_1.Logger(UsersService_1.name);
     constructor(prisma) {
         this.prisma = prisma;
-        console.log('Instantiating UsersService');
+        this.logger.log('UsersService initialized');
     }
     async create(createUserDto) {
-        return await this.prisma.$transaction(async (tx) => {
-            if (createUserDto.phone) {
-                const existingUser = await tx.user.findUnique({
-                    where: { phone: createUserDto.phone },
-                });
-                if (existingUser) {
-                    throw new common_1.ConflictException('User with this phone number already exists');
-                }
-            }
+        return this.prisma.$transaction(async (tx) => {
             const existingEmail = await tx.user.findUnique({
                 where: { email: createUserDto.email },
             });
@@ -42,116 +32,141 @@ let UsersService = UsersService_1 = class UsersService {
             }
             const hashedPassword = createUserDto.password
                 ? await bcrypt.hash(createUserDto.password, 10)
-                : undefined;
-            const mapRoleToUserRole = (role) => {
-                switch (role) {
-                    case user_roles_enum_1.UserRoles.VOTER:
-                        return index_1.UserRole.VOTER;
-                    case user_roles_enum_1.UserRoles.ASPIRANT:
-                        return index_1.UserRole.ASPIRANT;
-                    case user_roles_enum_1.UserRoles.EC_MEMBER:
-                        return index_1.UserRole.EC_MEMBER;
-                    case user_roles_enum_1.UserRoles.SUPER_ADMIN:
-                        return index_1.UserRole.SUPER_ADMIN;
-                    case user_roles_enum_1.UserRoles.ADMIN:
-                        return index_1.UserRole.ADMIN;
-                    default:
-                        return index_1.UserRole.VOTER;
-                }
-            };
-            const userData = {
-                name: createUserDto.name,
-                phone: createUserDto.phone,
-                email: createUserDto.email,
-                password: hashedPassword,
-                role: mapRoleToUserRole(createUserDto.role || user_roles_enum_1.UserRoles.VOTER),
-                programme: createUserDto.programme,
-                level: createUserDto.level,
-                subgroup: createUserDto.subgroup,
-                college: createUserDto.college,
-                phoneVerified: false,
-                emailVerified: false,
-                isActive: true,
-                hasVoted: false,
-                inkVerified: false,
-            };
+                : null;
             const user = await tx.user.create({
-                data: userData,
+                data: {
+                    name: createUserDto.name,
+                    email: createUserDto.email,
+                    password: hashedPassword,
+                    role: createUserDto.role || client_1.UserRole.VOTER,
+                    programme: createUserDto.programme,
+                    level: createUserDto.level,
+                    subgroup: createUserDto.subgroup,
+                    college: createUserDto.college,
+                    emailVerified: false,
+                    isActive: true,
+                    phoneVerified: false,
+                    hasVoted: false,
+                    inkVerified: false,
+                },
             });
+            this.logger.log(`User created: ${user.email}`);
             return user;
         });
     }
     async createAdmin(createAdminDto) {
-        return await this.prisma.$transaction(async (tx) => {
+        return this.prisma.$transaction(async (tx) => {
             const existingEmail = await tx.user.findUnique({
                 where: { email: createAdminDto.email },
             });
             if (existingEmail) {
-                throw new common_1.ConflictException('Email already exists');
-            }
-            if (createAdminDto.phone) {
-                const existingPhone = await tx.user.findUnique({
-                    where: { phone: createAdminDto.phone },
-                });
-                if (existingPhone) {
-                    throw new common_1.ConflictException('Phone number already exists');
-                }
+                throw new common_1.ConflictException('Admin with this email already exists');
             }
             const hashedPassword = await bcrypt.hash(createAdminDto.password, 10);
-            const mapRoleToUserRole = (role) => {
-                switch (role) {
-                    case user_roles_enum_1.UserRoles.EC_MEMBER:
-                        return index_1.UserRole.EC_MEMBER;
-                    case user_roles_enum_1.UserRoles.SUPER_ADMIN:
-                        return index_1.UserRole.SUPER_ADMIN;
-                    case user_roles_enum_1.UserRoles.ADMIN:
-                        return index_1.UserRole.ADMIN;
-                    default:
-                        return index_1.UserRole.ADMIN;
-                }
-            };
-            const adminData = {
-                name: createAdminDto.name,
-                phone: createAdminDto.phone,
-                email: createAdminDto.email,
-                password: hashedPassword,
-                role: mapRoleToUserRole(createAdminDto.role),
-                programme: createAdminDto.programme,
-                level: createAdminDto.level,
-                subgroup: createAdminDto.subgroup,
-                college: createAdminDto.college,
-                phoneVerified: true,
-                emailVerified: true,
-                isActive: true,
-                hasVoted: false,
-                inkVerified: false,
-            };
             const admin = await tx.user.create({
-                data: adminData,
+                data: {
+                    name: createAdminDto.name,
+                    email: createAdminDto.email,
+                    password: hashedPassword,
+                    role: this.mapUserRoleStringToPrisma(createAdminDto.role),
+                    programme: createAdminDto.programme,
+                    level: createAdminDto.level,
+                    subgroup: createAdminDto.subgroup,
+                    college: createAdminDto.college,
+                    emailVerified: true,
+                    phoneVerified: true,
+                    isActive: true,
+                    hasVoted: false,
+                    inkVerified: false,
+                },
             });
-            return new user_entity_1.User(admin);
+            this.logger.log(`Admin created: ${admin.email} with role ${admin.role}`);
+            return admin;
         });
-    }
-    async findByPhone(phone) {
-        const user = await this.prisma.user.findUnique({
-            where: { phone },
-        });
-        return user ? new user_entity_1.User(user) : null;
     }
     async findByEmail(email) {
-        const user = await this.prisma.user.findUnique({
+        return this.prisma.user.findUnique({
             where: { email },
         });
-        return user ? new user_entity_1.User(user) : null;
     }
     async findById(id) {
-        const user = await this.prisma.user.findUnique({
+        return this.prisma.user.findUnique({
             where: { id },
         });
-        return user ? new user_entity_1.User(user) : null;
+    }
+    async findAll(page = 1, limit = 10, role) {
+        const skip = (page - 1) * limit;
+        const where = role ? { role } : {};
+        const [users, total] = await Promise.all([
+            this.prisma.user.findMany({
+                where,
+                skip,
+                take: limit,
+                orderBy: { createdAt: 'desc' },
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    role: true,
+                    emailVerified: true,
+                    isActive: true,
+                    createdAt: true,
+                    lastLoginAt: true,
+                    programme: true,
+                    level: true,
+                    college: true,
+                },
+            }),
+            this.prisma.user.count({ where }),
+        ]);
+        return {
+            users,
+            total,
+            page,
+            limit,
+            totalPages: Math.ceil(total / limit),
+        };
+    }
+    async getECMembers() {
+        return this.prisma.user.findMany({
+            where: {
+                role: { in: [client_1.UserRole.EC_MEMBER, client_1.UserRole.SUPER_ADMIN] }
+            },
+            orderBy: { createdAt: 'asc' },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+                emailVerified: true,
+                isActive: true,
+                createdAt: true,
+                lastLoginAt: true,
+            },
+        });
+    }
+    async getAdmins() {
+        return this.prisma.user.findMany({
+            where: {
+                role: {
+                    in: [client_1.UserRole.SUPER_ADMIN, client_1.UserRole.EC_MEMBER, client_1.UserRole.ADMIN],
+                },
+            },
+            orderBy: { createdAt: 'asc' },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+                emailVerified: true,
+                isActive: true,
+                createdAt: true,
+                lastLoginAt: true,
+            },
+        });
     }
     async update(id, updateUserDto) {
-        return await this.prisma.$transaction(async (tx) => {
+        return this.prisma.$transaction(async (tx) => {
             const existingUser = await tx.user.findUnique({
                 where: { id },
             });
@@ -166,248 +181,99 @@ let UsersService = UsersService_1 = class UsersService {
                     throw new common_1.ConflictException('Email already exists');
                 }
             }
-            if (updateUserDto.phone && updateUserDto.phone !== existingUser.phone) {
-                const phoneExists = await tx.user.findUnique({
-                    where: { phone: updateUserDto.phone },
-                });
-                if (phoneExists) {
-                    throw new common_1.ConflictException('Phone number already exists');
-                }
-            }
             const updateData = { ...updateUserDto };
             if (updateUserDto.password) {
                 updateData.password = await bcrypt.hash(updateUserDto.password, 10);
             }
-            if (updateUserDto.role) {
-                const mapRoleToUserRole = (role) => {
-                    switch (role) {
-                        case user_roles_enum_1.UserRoles.VOTER:
-                            return index_1.UserRole.VOTER;
-                        case user_roles_enum_1.UserRoles.ASPIRANT:
-                            return index_1.UserRole.ASPIRANT;
-                        case user_roles_enum_1.UserRoles.EC_MEMBER:
-                            return index_1.UserRole.EC_MEMBER;
-                        case user_roles_enum_1.UserRoles.SUPER_ADMIN:
-                            return index_1.UserRole.SUPER_ADMIN;
-                        case user_roles_enum_1.UserRoles.ADMIN:
-                            return index_1.UserRole.ADMIN;
-                        default:
-                            return existingUser.role;
-                    }
-                };
-                updateData.role = mapRoleToUserRole(updateUserDto.role);
-            }
             const updatedUser = await tx.user.update({
                 where: { id },
                 data: updateData,
-            });
-            return new user_entity_1.User(updatedUser);
-        });
-    }
-    async updatePhoneVerificationStatus(id, phoneVerified, emailVerified) {
-        return await this.prisma.$transaction(async (tx) => {
-            const existingUser = await tx.user.findUnique({
-                where: { id },
-            });
-            if (!existingUser) {
-                throw new common_1.NotFoundException('User not found');
-            }
-            const updateData = {};
-            if (phoneVerified !== undefined) {
-                updateData.phoneVerified = phoneVerified;
-                updateData.phoneVerifiedAt = phoneVerified ? new Date() : null;
-                if (phoneVerified) {
-                    updateData.isActive = true;
-                }
-            }
-            if (emailVerified !== undefined) {
-                updateData.emailVerified = emailVerified;
-                updateData.emailVerifiedAt = emailVerified ? new Date() : null;
-            }
-            const updatedUser = await tx.user.update({
-                where: { id },
-                data: updateData,
-            });
-            return new user_entity_1.User(updatedUser);
-        });
-    }
-    async updateLastLogin(id) {
-        if (!id) {
-            throw new Error('Invalid user ID provided');
-        }
-        await this.prisma.$transaction(async (tx) => {
-            const existingUser = await tx.user.findUnique({
-                where: { id },
-            });
-            if (!existingUser) {
-                throw new common_1.NotFoundException('User not found');
-            }
-            await tx.user.update({
-                where: { id },
-                data: {
-                    lastLoginAt: new Date(),
-                },
-            });
-        });
-    }
-    async getUserProfile(id) {
-        if (!id) {
-            throw new Error('Invalid user ID provided');
-        }
-        return await this.prisma.$transaction(async (tx) => {
-            const user = await tx.user.findUnique({
-                where: { id },
                 select: {
                     id: true,
                     name: true,
-                    phone: true,
+                    email: true,
                     role: true,
-                    phoneVerified: true,
+                    emailVerified: true,
                     isActive: true,
-                    createdAt: true,
-                    lastLoginAt: true,
+                    updatedAt: true,
                 },
             });
-            if (!user) {
-                throw new common_1.NotFoundException('User not found');
-            }
-            const convertPrismaRoleToUserRole = (prismaRole) => {
-                switch (prismaRole) {
-                    case index_1.UserRole.VOTER:
-                        return user_roles_enum_1.UserRoles.VOTER;
-                    case index_1.UserRole.ASPIRANT:
-                        return user_roles_enum_1.UserRoles.ASPIRANT;
-                    case index_1.UserRole.EC_MEMBER:
-                        return user_roles_enum_1.UserRoles.EC_MEMBER;
-                    case index_1.UserRole.SUPER_ADMIN:
-                        return user_roles_enum_1.UserRoles.SUPER_ADMIN;
-                    case index_1.UserRole.ADMIN:
-                        return user_roles_enum_1.UserRoles.ADMIN;
-                    default:
-                        return user_roles_enum_1.UserRoles.VOTER;
-                }
-            };
-            return {
-                id: user.id,
-                name: user.name,
-                phone: user.phone ?? '',
-                role: convertPrismaRoleToUserRole(user.role),
-                phoneVerified: user.phoneVerified,
-                isActive: user.isActive,
-                createdAt: user.createdAt,
-                lastLoginAt: user.lastLoginAt,
-            };
+            this.logger.log(`User updated: ${updatedUser.email}`);
+            return updatedUser;
         });
     }
-    async findAll(page = 1, limit = 10, role) {
-        const skip = (page - 1) * limit;
-        const where = role ? { role } : {};
-        const [users, total] = await Promise.all([
-            this.prisma.user.findMany({
-                where,
-                skip,
-                take: limit,
-                orderBy: { createdAt: 'desc' },
-            }),
-            this.prisma.user.count({ where }),
-        ]);
-        return {
-            users: users.map((user) => new user_entity_1.User(user)),
-            total,
-            page,
-            limit,
-        };
-    }
-    async getECMembers() {
-        const ecMembers = await this.prisma.user.findMany({
-            where: { role: index_1.UserRole.EC_MEMBER },
-            orderBy: { createdAt: 'asc' },
-        });
-        return ecMembers.map((user) => new user_entity_1.User(user));
-    }
-    async getAdmins() {
-        const admins = await this.prisma.user.findMany({
-            where: {
-                role: {
-                    in: [index_1.UserRole.SUPER_ADMIN, index_1.UserRole.EC_MEMBER],
-                },
-            },
-            orderBy: { createdAt: 'asc' },
-        });
-        return admins.map((user) => new user_entity_1.User(user));
-    }
-    async updateUserStatus(userId, isActive) {
-        const user = await this.prisma.user.findUnique({
-            where: { id: userId },
-        });
-        if (!user) {
-            throw new common_1.NotFoundException('User not found');
-        }
-        return this.prisma.user.update({
-            where: { id: userId },
-            data: { isActive },
-            select: {
-                id: true,
-                name: true,
-                email: true,
-                phone: true,
-                role: true,
-                isActive: true,
-                updatedAt: true,
-            },
-        });
-    }
-    async getUserStats() {
-        const [totalUsers, totalAdmins, totalAspirants, totalVoters, verifiedUsers, activeUsers,] = await Promise.all([
-            this.prisma.user.count(),
-            this.prisma.user.count({
-                where: { role: { in: [index_1.UserRole.SUPER_ADMIN, index_1.UserRole.EC_MEMBER] } },
-            }),
-            this.prisma.user.count({ where: { role: index_1.UserRole.ASPIRANT } }),
-            this.prisma.user.count({ where: { role: index_1.UserRole.VOTER } }),
-            this.prisma.user.count({ where: { phoneVerified: true } }),
-            this.prisma.user.count({ where: { isActive: true } }),
-        ]);
-        return {
-            totalUsers,
-            totalAdmins,
-            totalAspirants,
-            totalVoters,
-            verifiedUsers,
-            activeUsers,
-        };
-    }
-    async validateAdminCredentials(phone, password) {
-        const user = await this.findByPhone(phone);
-        if (!user || !user.password) {
-            return null;
-        }
-        const isPasswordValid = await bcrypt.compare(password, user.password);
-        if (!isPasswordValid) {
-            return null;
-        }
-        if (user.role !== index_1.UserRole.ADMIN &&
-            user.role !== index_1.UserRole.SUPER_ADMIN &&
-            user.role !== index_1.UserRole.EC_MEMBER) {
-            return null;
-        }
-        return user;
-    }
-    async softDelete(id) {
+    async updateUserStatus(id, isActive) {
         const user = await this.findById(id);
         if (!user) {
             throw new common_1.NotFoundException('User not found');
         }
         const updatedUser = await this.prisma.user.update({
             where: { id },
-            data: {
-                isActive: false,
+            data: { isActive },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+                isActive: true,
+                updatedAt: true,
             },
         });
-        return new user_entity_1.User(updatedUser);
+        this.logger.log(`User status updated: ${updatedUser.email} - Active: ${isActive}`);
+        return updatedUser;
+    }
+    async updateEmailVerificationStatus(id, emailVerified) {
+        const user = await this.prisma.user.findUnique({
+            where: { id },
+        });
+        if (!user) {
+            throw new common_1.NotFoundException('User not found');
+        }
+        const updatedUser = await this.prisma.user.update({
+            where: { id },
+            data: {
+                emailVerified,
+                emailVerifiedAt: emailVerified ? new Date() : null,
+            },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+                emailVerified: true,
+                emailVerifiedAt: true,
+            },
+        });
+        this.logger.log(`Email verification status updated for user: ${updatedUser.email}`);
+        return updatedUser;
+    }
+    async updateLastLogin(id) {
+        await this.prisma.user.update({
+            where: { id },
+            data: {
+                lastLoginAt: new Date(),
+            },
+        });
     }
     async suspendUser(id) {
-        return this.softDelete(id);
+        const user = await this.findById(id);
+        if (!user) {
+            throw new common_1.NotFoundException('User not found');
+        }
+        const updatedUser = await this.prisma.user.update({
+            where: { id },
+            data: { isActive: false },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+                isActive: true,
+                updatedAt: true,
+            },
+        });
+        this.logger.log(`User suspended: ${updatedUser.email}`);
+        return updatedUser;
     }
     async reactivateUser(id) {
         const user = await this.findById(id);
@@ -416,29 +282,144 @@ let UsersService = UsersService_1 = class UsersService {
         }
         const updatedUser = await this.prisma.user.update({
             where: { id },
-            data: {
+            data: { isActive: true },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
                 isActive: true,
+                updatedAt: true,
             },
         });
-        return new user_entity_1.User(updatedUser);
+        this.logger.log(`User reactivated: ${updatedUser.email}`);
+        return updatedUser;
+    }
+    async softDelete(id) {
+        return this.suspendUser(id);
+    }
+    async getUserProfile(id) {
+        const user = await this.prisma.user.findUnique({
+            where: { id },
+            select: {
+                id: true,
+                name: true,
+                email: true,
+                role: true,
+                emailVerified: true,
+                isActive: true,
+                createdAt: true,
+                lastLoginAt: true,
+                programme: true,
+                level: true,
+                college: true,
+                subgroup: true,
+            },
+        });
+        if (!user) {
+            throw new common_1.NotFoundException('User not found');
+        }
+        return user;
+    }
+    async getUserStats() {
+        const [totalUsers, totalAdmins, totalAspirants, totalVoters, totalECMembers, verifiedUsers, activeUsers,] = await Promise.all([
+            this.prisma.user.count(),
+            this.prisma.user.count({
+                where: {
+                    role: { in: [client_1.UserRole.SUPER_ADMIN, client_1.UserRole.EC_MEMBER, client_1.UserRole.ADMIN] }
+                },
+            }),
+            this.prisma.user.count({ where: { role: client_1.UserRole.ASPIRANT } }),
+            this.prisma.user.count({ where: { role: client_1.UserRole.VOTER } }),
+            this.prisma.user.count({ where: { role: client_1.UserRole.EC_MEMBER } }),
+            this.prisma.user.count({ where: { emailVerified: true } }),
+            this.prisma.user.count({ where: { isActive: true } }),
+        ]);
+        return {
+            totalUsers,
+            totalAdmins,
+            totalAspirants,
+            totalVoters,
+            totalECMembers,
+            verifiedUsers,
+            activeUsers,
+        };
+    }
+    async validateAdminCredentials(email, password) {
+        const user = await this.findByEmail(email);
+        if (!user || !user.password) {
+            return null;
+        }
+        const isPasswordValid = await bcrypt.compare(password, user.password);
+        if (!isPasswordValid) {
+            return null;
+        }
+        const adminRoles = [client_1.UserRole.ADMIN, client_1.UserRole.SUPER_ADMIN, client_1.UserRole.EC_MEMBER];
+        if (!adminRoles.includes(user.role)) {
+            return null;
+        }
+        return user;
     }
     async createOrUpdateUser(data) {
         return this.prisma.user.upsert({
-            where: { phone: data.phone },
+            where: { email: data.email },
             update: {
                 name: data.name,
-                email: data.email,
+                lastLoginAt: new Date(),
             },
             create: {
-                phone: data.phone,
-                name: data.name,
                 email: data.email,
+                name: data.name,
                 role: data.role,
-                phoneVerified: false,
+                password: data.password ? await bcrypt.hash(data.password, 10) : null,
                 emailVerified: false,
+                phoneVerified: false,
                 isActive: true,
+                hasVoted: false,
+                inkVerified: false,
             },
         });
+    }
+    mapUserRoleStringToPrisma(role) {
+        const normalizedRole = typeof role === 'string' ? role.toUpperCase() : role;
+        switch (normalizedRole) {
+            case 'SUPER_ADMIN':
+            case client_1.UserRole.SUPER_ADMIN:
+                return client_1.UserRole.SUPER_ADMIN;
+            case 'EC_MEMBER':
+            case client_1.UserRole.EC_MEMBER:
+                return client_1.UserRole.EC_MEMBER;
+            case 'ADMIN':
+            case client_1.UserRole.ADMIN:
+                return client_1.UserRole.ADMIN;
+            case 'ASPIRANT':
+            case client_1.UserRole.ASPIRANT:
+                return client_1.UserRole.ASPIRANT;
+            case 'VOTER':
+            case client_1.UserRole.VOTER:
+                return client_1.UserRole.VOTER;
+            default:
+                this.logger.warn(`Unknown role '${role}', defaulting to VOTER`);
+                return client_1.UserRole.VOTER;
+        }
+    }
+    async cleanupInactiveUsers(daysInactive = 365) {
+        const cutoffDate = new Date();
+        cutoffDate.setDate(cutoffDate.getDate() - daysInactive);
+        const result = await this.prisma.user.updateMany({
+            where: {
+                AND: [
+                    { lastLoginAt: { lt: cutoffDate } },
+                    { role: client_1.UserRole.VOTER },
+                    { isActive: true },
+                ],
+            },
+            data: {
+                isActive: false,
+            },
+        });
+        this.logger.log(`Cleaned up ${result.count} inactive users`);
+        return result;
     }
 };
 exports.UsersService = UsersService;

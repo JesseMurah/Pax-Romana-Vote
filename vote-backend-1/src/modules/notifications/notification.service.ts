@@ -26,12 +26,11 @@ export class NotificationService {
 
 
     private getTemplatePath(templateName: string): string {
-        // In development, use src path
         if (process.env.NODE_ENV === 'development') {
             return path.join(process.cwd(), 'src', 'modules', 'notifications', 'templates', 'email', templateName);
         }
 
-        // In production, use dist path
+        // In production, use a dist path
         return path.join(process.cwd(), 'dist', 'src', 'modules', 'notifications', 'templates', 'email', templateName);
     }
 

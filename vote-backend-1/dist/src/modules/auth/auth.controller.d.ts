@@ -1,13 +1,58 @@
 import { AuthService } from './auth.service';
-import { AdminLoginDto, LoginDto, RefreshTokenDto, VerifySmsDto } from "./dto/login.dto";
-import { AuthResponseDto, VerificationResponseDto } from "./dto/auth-response.dto";
+import { AdminLoginDto, RefreshTokenDto } from "./dto/login.dto";
+declare class SendVerificationCodeDto {
+    email: string;
+    name?: string;
+}
+declare class VerifyEmailCodeDto {
+    email: string;
+    verificationCode: string;
+}
+declare class PasswordResetRequestDto {
+    email: string;
+}
+declare class PasswordResetDto {
+    email: string;
+    resetToken: string;
+    newPassword: string;
+}
 export declare class AuthController {
     private authService;
     private readonly logger;
     constructor(authService: AuthService);
-    sendVerificationCode(loginDto: LoginDto): Promise<VerificationResponseDto>;
-    verifyAndLogin(verifySmsDto: VerifySmsDto): Promise<AuthResponseDto>;
-    adminLogin(adminLoginDto: AdminLoginDto): Promise<AuthResponseDto>;
+    sendVerificationCode(dto: SendVerificationCodeDto): Promise<{
+        action: string;
+        message: string;
+        success: boolean;
+        timeRemaining: number;
+        verificationToken: string;
+        reason: string;
+        then: undefined;
+    }>;
+    verifyEmailAndLogin(dto: VerifyEmailCodeDto): Promise<{
+        access_token: string;
+        refresh_token: string;
+        user: {
+            id: any;
+            name: any;
+            email: any;
+            role: any;
+            emailVerified: boolean;
+            isActive: any;
+        };
+    }>;
+    adminLogin(adminLoginDto: AdminLoginDto): Promise<{
+        access_token: string;
+        refresh_token: string;
+        user: {
+            id: any;
+            name: any;
+            email: any;
+            role: any;
+            emailVerified: any;
+            isActive: any;
+        };
+    }>;
     refreshToken(refreshTokenDto: RefreshTokenDto): Promise<{
         access_token: string;
     }>;
@@ -15,12 +60,25 @@ export declare class AuthController {
         message: string;
     }>;
     getProfile(user: any): Promise<{
-        id: any;
-        name: any;
-        phone: any;
-        email: any;
-        role: any;
-        phoneVerified: any;
-        emailVerified: any;
+        id: string;
+        name: string;
+        email: string;
+        role: import(".prisma/client").$Enums.UserRole;
+        emailVerified: boolean;
+        isActive: boolean;
+        createdAt: Date;
+        lastLoginAt: Date | null;
+    }>;
+    requestPasswordReset(dto: PasswordResetRequestDto): Promise<{
+        message: string;
+    }>;
+    resetPassword(dto: PasswordResetDto): Promise<{
+        message: string;
+    }>;
+    healthCheck(): Promise<{
+        status: string;
+        timestamp: string;
+        service: string;
     }>;
 }
+export {};

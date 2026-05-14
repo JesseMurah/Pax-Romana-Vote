@@ -18,7 +18,7 @@ const users_service_1 = require("./users.service");
 const create_user_dto_1 = require("./dto/create-user.dto");
 const create_admin_dto_1 = require("./dto/create-admin.dto");
 const update_user_dto_1 = require("./dto/update-user.dto");
-const user_roles_enum_1 = require("./enums/user-roles.enum");
+const index_1 = require("@prisma/client/index");
 const roles_guard_1 = require("../auth/guards/roles.guard");
 const roles_decorator_1 = require("../auth/decorators/roles.decorator");
 let UsersController = class UsersController {
@@ -54,7 +54,7 @@ let UsersController = class UsersController {
         return this.usersService.update(id, updateUserDto);
     }
     async updateVerificationStatus(id, isVerified) {
-        return this.usersService.updatePhoneVerificationStatus(id, isVerified);
+        return this.usersService.updateEmailVerificationStatus(id, isVerified);
     }
     async suspendUser(id) {
         return this.usersService.suspendUser(id);
@@ -77,7 +77,7 @@ __decorate([
 __decorate([
     (0, common_1.Post)('admin'),
     (0, common_1.UseGuards)(roles_guard_1.RolesGuard),
-    (0, roles_decorator_1.Roles)(user_roles_enum_1.UserRoles.SUPER_ADMIN),
+    (0, roles_decorator_1.Roles)(index_1.UserRole.SUPER_ADMIN),
     __param(0, (0, common_1.Body)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [create_admin_dto_1.CreateAdminDTO]),
@@ -93,7 +93,7 @@ __decorate([
 __decorate([
     (0, common_1.Get)(),
     (0, common_1.UseGuards)(roles_guard_1.RolesGuard),
-    (0, roles_decorator_1.Roles)(user_roles_enum_1.UserRoles.SUPER_ADMIN, user_roles_enum_1.UserRoles.EC_MEMBER),
+    (0, roles_decorator_1.Roles)(index_1.UserRole.SUPER_ADMIN, index_1.UserRole.EC_MEMBER),
     __param(0, (0, common_1.Query)('page')),
     __param(1, (0, common_1.Query)('limit')),
     __param(2, (0, common_1.Query)('role')),
@@ -104,7 +104,7 @@ __decorate([
 __decorate([
     (0, common_1.Get)('stats'),
     (0, common_1.UseGuards)(roles_guard_1.RolesGuard),
-    (0, roles_decorator_1.Roles)(user_roles_enum_1.UserRoles.SUPER_ADMIN, user_roles_enum_1.UserRoles.EC_MEMBER),
+    (0, roles_decorator_1.Roles)(index_1.UserRole.SUPER_ADMIN, index_1.UserRole.EC_MEMBER),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
@@ -112,7 +112,7 @@ __decorate([
 __decorate([
     (0, common_1.Get)('ec-members'),
     (0, common_1.UseGuards)(roles_guard_1.RolesGuard),
-    (0, roles_decorator_1.Roles)(user_roles_enum_1.UserRoles.SUPER_ADMIN, user_roles_enum_1.UserRoles.EC_MEMBER),
+    (0, roles_decorator_1.Roles)(index_1.UserRole.SUPER_ADMIN, index_1.UserRole.EC_MEMBER),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
@@ -120,7 +120,7 @@ __decorate([
 __decorate([
     (0, common_1.Get)('admins'),
     (0, common_1.UseGuards)(roles_guard_1.RolesGuard),
-    (0, roles_decorator_1.Roles)(user_roles_enum_1.UserRoles.SUPER_ADMIN),
+    (0, roles_decorator_1.Roles)(index_1.UserRole.SUPER_ADMIN),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
@@ -128,7 +128,7 @@ __decorate([
 __decorate([
     (0, common_1.Get)(':id'),
     (0, common_1.UseGuards)(roles_guard_1.RolesGuard),
-    (0, roles_decorator_1.Roles)(user_roles_enum_1.UserRoles.SUPER_ADMIN, user_roles_enum_1.UserRoles.EC_MEMBER),
+    (0, roles_decorator_1.Roles)(index_1.UserRole.SUPER_ADMIN, index_1.UserRole.EC_MEMBER),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -137,7 +137,7 @@ __decorate([
 __decorate([
     (0, common_1.Put)(':id'),
     (0, common_1.UseGuards)(roles_guard_1.RolesGuard),
-    (0, roles_decorator_1.Roles)(user_roles_enum_1.UserRoles.SUPER_ADMIN),
+    (0, roles_decorator_1.Roles)(index_1.UserRole.SUPER_ADMIN),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)()),
     __metadata("design:type", Function),
@@ -147,7 +147,7 @@ __decorate([
 __decorate([
     (0, common_1.Put)(':id/verify'),
     (0, common_1.UseGuards)(roles_guard_1.RolesGuard),
-    (0, roles_decorator_1.Roles)(user_roles_enum_1.UserRoles.SUPER_ADMIN, user_roles_enum_1.UserRoles.EC_MEMBER),
+    (0, roles_decorator_1.Roles)(index_1.UserRole.SUPER_ADMIN, index_1.UserRole.EC_MEMBER),
     __param(0, (0, common_1.Param)('id')),
     __param(1, (0, common_1.Body)('isVerified')),
     __metadata("design:type", Function),
@@ -157,7 +157,7 @@ __decorate([
 __decorate([
     (0, common_1.Put)(':id/suspend'),
     (0, common_1.UseGuards)(roles_guard_1.RolesGuard),
-    (0, roles_decorator_1.Roles)(user_roles_enum_1.UserRoles.SUPER_ADMIN),
+    (0, roles_decorator_1.Roles)(index_1.UserRole.SUPER_ADMIN),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -166,7 +166,7 @@ __decorate([
 __decorate([
     (0, common_1.Put)(':id/reactivate'),
     (0, common_1.UseGuards)(roles_guard_1.RolesGuard),
-    (0, roles_decorator_1.Roles)(user_roles_enum_1.UserRoles.SUPER_ADMIN),
+    (0, roles_decorator_1.Roles)(index_1.UserRole.SUPER_ADMIN),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -175,7 +175,7 @@ __decorate([
 __decorate([
     (0, common_1.Delete)(':id'),
     (0, common_1.UseGuards)(roles_guard_1.RolesGuard),
-    (0, roles_decorator_1.Roles)(user_roles_enum_1.UserRoles.SUPER_ADMIN),
+    (0, roles_decorator_1.Roles)(index_1.UserRole.SUPER_ADMIN),
     __param(0, (0, common_1.Param)('id')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),

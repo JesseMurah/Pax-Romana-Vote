@@ -1,0 +1,36 @@
+import { VoteCountingService } from "./vote-counting.service";
+import { CertificationService } from "./certification.service";
+import { ExportService } from "./export.service";
+import { CacheService } from "../../caches/cache.service";
+import { RealTimeService } from "../../real-time/services/real-time.service";
+import { PositionResult, ResultSummary } from "../types/results.types";
+import { Candidate_Position } from "@prisma/client/index";
+import { ExportOptionsDto } from "../dto/export-options.dto";
+import { ExportFormat } from "../enums/result-status.enum";
+export declare class ResultsService {
+    private voteCountingService;
+    private certificationService;
+    private exportService;
+    private sseService;
+    private cacheService;
+    private readonly logger;
+    constructor(voteCountingService: VoteCountingService, certificationService: CertificationService, exportService: ExportService, sseService: RealTimeService, cacheService: CacheService);
+    getResultsSummary(useCache?: boolean): Promise<ResultSummary>;
+    getPositionResults(position: Candidate_Position): Promise<PositionResult>;
+    exportResults(options: ExportOptionsDto): Promise<Buffer>;
+    exportResultsAsPDF(positions?: Candidate_Position[], certifiedOnly?: boolean, includeAuditTrail?: boolean): Promise<Buffer>;
+    exportResultsAsJSON(positions?: Candidate_Position[], certifiedOnly?: boolean, includeAuditTrail?: boolean): Promise<Buffer>;
+    exportResultsAsCSV(positions?: Candidate_Position[], certifiedOnly?: boolean, includeAuditTrail?: boolean): Promise<Buffer>;
+    generateOfficialCertificate(): Promise<Buffer>;
+    exportCertifiedResults(format: ExportFormat): Promise<Buffer>;
+    updateAndBroadcastResults(): Promise<void>;
+    getPublicResults(): Promise<any>;
+    getAdminResults(): Promise<ResultSummary>;
+    recountPosition(position: Candidate_Position, triggeredBy: string): Promise<PositionResult>;
+    private logRecountAction;
+    getWinnerAnnouncements(): Promise<any[]>;
+    getDisputedResults(): Promise<PositionResult[]>;
+    generateElectionStatistics(): Promise<any>;
+    generateResultsSnapshot(format?: ExportFormat): Promise<Buffer>;
+    exportPositionResults(positions: Candidate_Position[], format?: ExportFormat): Promise<Buffer>;
+}

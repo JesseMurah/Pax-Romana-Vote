@@ -17,7 +17,7 @@ const common_1 = require("@nestjs/common");
 const jwt_auth_guard_1 = require("../auth/guards/jwt-auth.guard");
 const file_upload_service_1 = require("./services/file-upload.service");
 const roles_decorator_1 = require("../auth/decorators/roles.decorator");
-const user_roles_enum_1 = require("../users/enums/user-roles.enum");
+const index_1 = require("@prisma/client/index");
 const platform_express_1 = require("@nestjs/platform-express");
 const upload_response_dto_1 = require("./dto/upload-response.dto");
 const file_validation_interceptor_1 = require("./interceptors/file-validation.interceptor");
@@ -52,7 +52,7 @@ let FileUploadController = class FileUploadController {
 exports.FileUploadController = FileUploadController;
 __decorate([
     (0, common_1.Post)('candidate-photo'),
-    (0, roles_decorator_1.Roles)(user_roles_enum_1.UserRoles.ASPIRANT, user_roles_enum_1.UserRoles.SUPER_ADMIN, user_roles_enum_1.UserRoles.EC_MEMBER),
+    (0, roles_decorator_1.Roles)(index_1.UserRole.ASPIRANT, index_1.UserRole.SUPER_ADMIN, index_1.UserRole.EC_MEMBER),
     (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('photo'), file_validation_interceptor_1.FileValidationInterceptor),
     __param(0, (0, common_1.UploadedFile)()),
     __param(1, (0, common_1.Body)()),
@@ -62,7 +62,7 @@ __decorate([
 ], FileUploadController.prototype, "uploadCandidatePhoto", null);
 __decorate([
     (0, common_1.Post)('nomination-document/:nominationId'),
-    (0, roles_decorator_1.Roles)(user_roles_enum_1.UserRoles.ASPIRANT, user_roles_enum_1.UserRoles.SUPER_ADMIN, user_roles_enum_1.UserRoles.EC_MEMBER),
+    (0, roles_decorator_1.Roles)(index_1.UserRole.ASPIRANT, index_1.UserRole.SUPER_ADMIN, index_1.UserRole.EC_MEMBER),
     (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)('document')),
     __param(0, (0, common_1.UploadedFile)()),
     __param(1, (0, common_1.Param)('nominationId')),
@@ -72,7 +72,7 @@ __decorate([
 ], FileUploadController.prototype, "uploadNominationDocument", null);
 __decorate([
     (0, common_1.Delete)(':publicId'),
-    (0, roles_decorator_1.Roles)(user_roles_enum_1.UserRoles.SUPER_ADMIN, user_roles_enum_1.UserRoles.EC_MEMBER),
+    (0, roles_decorator_1.Roles)(index_1.UserRole.SUPER_ADMIN, index_1.UserRole.EC_MEMBER),
     __param(0, (0, common_1.Param)('publicId')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),
@@ -80,7 +80,7 @@ __decorate([
 ], FileUploadController.prototype, "deleteFile", null);
 __decorate([
     (0, common_1.Get)('info/:publicId'),
-    (0, roles_decorator_1.Roles)(user_roles_enum_1.UserRoles.SUPER_ADMIN, user_roles_enum_1.UserRoles.EC_MEMBER),
+    (0, roles_decorator_1.Roles)(index_1.UserRole.SUPER_ADMIN, index_1.UserRole.EC_MEMBER),
     __param(0, (0, common_1.Param)('publicId')),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [String]),

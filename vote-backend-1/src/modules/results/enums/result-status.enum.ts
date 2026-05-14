@@ -1,0 +1,21 @@
+export enum ResultStatus {
+    PENDING = 'PENDING',
+    COUNTING = 'COUNTING',
+    PROVISIONAL = 'PROVISIONAL',
+    CERTIFIED = 'CERTIFIED',
+    DISPUTED = 'DISPUTED'
+}
+
+export enum CertificationStatus {
+    NOT_CERTIFIED = 'NOT_CERTIFIED',
+    PENDING_REVIEW = 'PENDING_REVIEW',
+    CERTIFIED_PROVISIONAL = 'CERTIFIED_PROVISIONAL',
+    CERTIFIED_FINAL = 'CERTIFIED_FINAL'
+}
+
+export enum ExportFormat {
+    PDF = 'PDF',
+    EXCEL = 'EXCEL',
+    JSON = 'JSON',
+    CSV = 'CSV'
+}

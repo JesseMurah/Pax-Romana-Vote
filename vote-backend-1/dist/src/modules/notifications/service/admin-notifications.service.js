@@ -82,9 +82,7 @@ let AdminNotificationsService = AdminNotificationsService_1 = class AdminNotific
             [index_1.Candidate_Position.GEN_SECRETARY]: 'General Secretary',
             [index_1.Candidate_Position.FINANCIAL_SECRETARY]: 'Financial Secretary',
             [index_1.Candidate_Position.ORGANIZING_SECRETARY_MAIN]: 'Organizing Secretary (Main)',
-            [index_1.Candidate_Position.ORGANIZING_SECRETARY_ASST]: 'Organizing Secretary (Assistant)',
             [index_1.Candidate_Position.PRO_MAIN]: 'PRO (Main)',
-            [index_1.Candidate_Position.PRO_ASSISTANT]: 'PRO (Assistant)',
             [index_1.Candidate_Position.WOMEN_COMMISSIONER]: 'Women Commissioner'
         };
         return positionMap[position] || position;

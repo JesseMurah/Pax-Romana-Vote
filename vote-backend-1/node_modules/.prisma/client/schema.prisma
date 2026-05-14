@@ -9,8 +9,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 /// ============= ENUMS =============
@@ -20,15 +21,11 @@ enum Candidate_Position {
   GEN_SECRETARY
   FINANCIAL_SECRETARY
   ORGANIZING_SECRETARY_MAIN
-  ORGANIZING_SECRETARY_ASST
   PRO_MAIN
-  PRO_ASSISTANT
   WOMEN_COMMISSIONER
 
   @@map("position")
 }
-
-// Add this field later: WOMEN's COMMISSIONEr
 
 enum Gender {
   MALE
@@ -99,6 +96,7 @@ model User {
   subgroup              String?
   college               String?
   phoneVerified         Boolean                 @default(false)
+  emailVerifiedAt       DateTime?
   emailVerified         Boolean                 @default(false)
   isActive              Boolean                 @default(true)
   hasVoted              Boolean                 @default(false)

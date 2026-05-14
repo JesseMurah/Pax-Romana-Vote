@@ -17,7 +17,7 @@ const admin_service_1 = require("../services/admin.service");
 const users_service_1 = require("../../users/users.service");
 const common_1 = require("@nestjs/common");
 const roles_decorator_1 = require("../../auth/decorators/roles.decorator");
-const user_roles_enum_1 = require("../../users/enums/user-roles.enum");
+const index_1 = require("@prisma/client/index");
 const create_admin_dto_1 = require("../../users/dto/create-admin.dto");
 let SuperAdminController = class SuperAdminController {
     adminService;
@@ -75,7 +75,7 @@ __decorate([
 ], SuperAdminController.prototype, "getSystemHealth", null);
 exports.SuperAdminController = SuperAdminController = __decorate([
     (0, common_1.Controller)('admin/super-admin'),
-    (0, roles_decorator_1.Roles)(user_roles_enum_1.UserRoles.SUPER_ADMIN),
+    (0, roles_decorator_1.Roles)(index_1.UserRole.SUPER_ADMIN),
     __metadata("design:paramtypes", [admin_service_1.AdminService,
         users_service_1.UsersService])
 ], SuperAdminController);

@@ -23,6 +23,12 @@ const nomination_module_1 = require("./modules/nominations/nomination.module");
 const admin_module_1 = require("./modules/admin/admin.module");
 const file_upload_module_1 = require("./modules/file-upload/file-upload.module");
 const db_1 = require("../db");
+const candidates_module_1 = require("./modules/candidates/candidates.module");
+const results_module_1 = require("./modules/results/results.module");
+const real_time_module_1 = require("./modules/real-time/real-time.module");
+const cache_module_1 = require("./modules/caches/cache.module");
+const voting_module_1 = require("./modules/voting/voting.module");
+const supabase_1 = require("./modules/supabase");
 let AppModule = class AppModule {
     constructor() {
         console.log('Instantiating AppModule');
@@ -51,6 +57,12 @@ exports.AppModule = AppModule = __decorate([
             admin_module_1.AdminModule,
             file_upload_module_1.FileUploadModule,
             db_1.DbModule,
+            candidates_module_1.CandidatesModule,
+            results_module_1.ResultsModule,
+            real_time_module_1.RealTimeModule,
+            cache_module_1.CacheModule,
+            voting_module_1.VotingModule,
+            supabase_1.SupabaseModule,
         ],
         controllers: [app_controller_1.AppController],
         providers: [

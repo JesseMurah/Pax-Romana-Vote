@@ -1,0 +1,81 @@
+import { PrismaService } from "../../../db";
+import { CacheService } from "../caches/cache.service";
+import { CreateCandidateDto } from "./dto/create-candidate.dto";
+import { CandidateCache } from "../caches/types/cache.types";
+import { Candidate_Position } from "@prisma/client/index";
+import { UpdateCandidateDto } from "./dto/update-candidate.dto";
+import { BallotCandidateDto } from "./dto/ballot-candidate.dto";
+import { SupabaseService } from "../supabase";
+export declare class CandidatesService {
+    private prisma;
+    private cacheService;
+    private supabaseService;
+    constructor(prisma: PrismaService, cacheService: CacheService, supabaseService: SupabaseService);
+    createCandidate(createCandidateDto: CreateCandidateDto, nominationId: string): Promise<{
+        id: string;
+        name: string;
+        position: string;
+        photoUrl: any;
+        biography: any;
+        candidateNumber: number;
+        displayOrder: number;
+        isActive: boolean;
+        voteCount: number;
+        createdAt: undefined;
+        updatedAt: undefined;
+        photoPublicId: number;
+    }>;
+    getAllCandidates(): Promise<CandidateCache[]>;
+    getCandidateById(id: string): Promise<{
+        id: string;
+        name: string;
+        position: string;
+        photoUrl: any;
+        biography: any;
+        candidateNumber: number;
+        displayOrder: number;
+        isActive: boolean;
+        voteCount: number;
+        createdAt: undefined;
+        updatedAt: undefined;
+        photoPublicId: number;
+    }>;
+    getCandidatesByPosition(position: Candidate_Position): Promise<{
+        id: string;
+        name: string;
+        position: string;
+        photoUrl: any;
+        biography: any;
+        candidateNumber: number;
+        displayOrder: number;
+        isActive: boolean;
+        voteCount: number;
+        createdAt: undefined;
+        updatedAt: undefined;
+        photoPublicId: number;
+    }[]>;
+    updateCandidate(id: string, updateCandidateDto: UpdateCandidateDto): Promise<{
+        id: string;
+        name: string;
+        position: string;
+        photoUrl: any;
+        biography: any;
+        candidateNumber: number;
+        displayOrder: number;
+        isActive: boolean;
+        voteCount: number;
+        createdAt: undefined;
+        updatedAt: undefined;
+        photoPublicId: number;
+    }>;
+    deleteCandidate(id: string): Promise<void>;
+    getCandidatesForBallot(): Promise<{
+        [position: string]: BallotCandidateDto[];
+    }>;
+    getUnapposedPositions(): Promise<Candidate_Position[]>;
+    uploadCandidatePhoto(candidateId: string, file: Express.Multer.File): Promise<string>;
+    private validateCandidateNumber;
+    private validatePhotoFile;
+    private mapToResponseDto;
+    private clearCandidatesCache;
+}

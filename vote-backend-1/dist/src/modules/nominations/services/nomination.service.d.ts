@@ -14,9 +14,9 @@ export declare class NominationService {
         nominatorVerification: {
             subgroup: string;
             programme: string;
+            level: string;
             name: string;
             email: string;
-            level: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;
@@ -94,9 +94,9 @@ export declare class NominationService {
         } & {
             subgroup: string;
             programme: string;
+            level: string;
             name: string;
             email: string;
-            level: string;
             id: string;
             createdAt: Date;
             updatedAt: Date;

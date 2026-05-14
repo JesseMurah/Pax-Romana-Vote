@@ -16,9 +16,7 @@ function mapPositionToEnum(position: string): Candidate_Position {
         'General Secretary': Candidate_Position.GEN_SECRETARY,
         'Financial Secretary': Candidate_Position.FINANCIAL_SECRETARY,
         'Organizing Secretary Main': Candidate_Position.ORGANIZING_SECRETARY_MAIN,
-        'Organizing Secretary Assistant': Candidate_Position.ORGANIZING_SECRETARY_ASST,
         'PRO Main': Candidate_Position.PRO_MAIN,
-        'PRO Assistant': Candidate_Position.PRO_ASSISTANT,
         'Women Commissioner': Candidate_Position.WOMEN_COMMISSIONER,
     };
     return positionMap[position] || Candidate_Position.PRESIDENT;
@@ -28,7 +26,7 @@ function mapPositionToEnum(position: string): Candidate_Position {
 export class NominationService {
     constructor(
         public prisma: PrismaService,
-        // public notificationService: NotificationService, // Commented out
+        // public notificationService: NotificationService,
         private deadlineService: DeadlineService,
         public usersService: UsersService,
         private cloudinaryService: CloudinaryService,
@@ -41,6 +39,7 @@ export class NominationService {
             throw new BadRequestException('Nomination period has ended');
         }
 
+        //@ts-ignore
         let user: IUser | null = await this.usersService.findByEmail(createNominationDto.aspirantEmail);
         if (!user) {
             //@ts-ignore
