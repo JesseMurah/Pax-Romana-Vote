@@ -144,11 +144,11 @@ export class EmailService {
     }
 
     async getTemplate(templateName: string): Promise<string> {
-        const templatePath = this.getTemplatePath(templateName);
         try {
+            const templatePath = this.getTemplatePath(templateName);
             return await fs.promises.readFile(templatePath, 'utf8');
         } catch (error) {
-            this.logger.error(`Template not found: ${templatePath}`);
+            this.logger.error(`Template not found: ${templateName}`);
             throw new Error(`Template ${templateName} not found`);
         }
     }

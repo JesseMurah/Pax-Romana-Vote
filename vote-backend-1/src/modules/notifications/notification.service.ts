@@ -19,7 +19,6 @@ export class NotificationService {
         private adminNotificationsService: AdminNotificationsService,
     ) {}
 
-
     // SMS Methods
     async sendSms(to: string, message: string): Promise<boolean> {
         const result = await this.notifySmsService.sendSms({ to, message });

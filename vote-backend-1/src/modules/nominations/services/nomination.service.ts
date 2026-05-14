@@ -181,12 +181,10 @@ export class NominationService {
         // The verification tokens and emails are stored in the database for your manual use
 
         // Log the verification details for manual processing
-        this.logger.warn('Nomination created — manual email required', {
+        this.logger.warn('Nomination created — manual verification emails required. Check DB for tokens.', {
+            nominationId: nomination.id,
             nominatorEmail: nomination.nominatorVerification!.email,
-            guarantorEmails: nomination.guarantorVerifications.map((g, i) => ({
-                email: g.email,
-                token: guarantorTokens[i],
-            })),
+            guarantorEmails: nomination.guarantorVerifications.map((g) => g.email),
         });
 
         return nomination;
