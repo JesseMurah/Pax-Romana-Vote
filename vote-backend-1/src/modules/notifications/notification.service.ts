@@ -6,9 +6,6 @@ import { AdminNotificationsService } from "./service/admin-notifications.service
 import { PrismaService } from "../../../db";
 import { AdminActions } from "../common/enums/nomination-status.enum";
 import {UserRole, NominatorVerification, Candidate_Position} from "@prisma/client/index";
-import * as path from "node:path";
-import * as fs from "node:fs";
-
 
 @Injectable()
 export class NotificationService {
@@ -20,30 +17,8 @@ export class NotificationService {
         private prisma: PrismaService,
         private notificationQueueService: NotificationQueueService,
         private adminNotificationsService: AdminNotificationsService,
-    ) {
-        console.log('Instantiating NotificationService');
-    }
+    ) {}
 
-
-    private getTemplatePath(templateName: string): string {
-        if (process.env.NODE_ENV === 'development') {
-            return path.join(process.cwd(), 'src', 'modules', 'notifications', 'templates', 'email', templateName);
-        }
-
-        // In production, use a dist path
-        return path.join(process.cwd(), 'dist', 'src', 'modules', 'notifications', 'templates', 'email', templateName);
-    }
-
-    async getTemplate(templateName: string): Promise<string> {
-        const templatePath = this.getTemplatePath(templateName);
-
-        try {
-            return await fs.promises.readFile(templatePath, 'utf8');
-        } catch (error) {
-            console.error(`Template not found: ${templatePath}`);
-            throw new Error(`Template ${templateName} not found`);
-        }
-    }
 
     // SMS Methods
     async sendSms(to: string, message: string): Promise<boolean> {
@@ -89,33 +64,6 @@ export class NotificationService {
             return false;
         }
     }
-
-    // Nomination-specific notifications
-    // async sendNominatorVerificationEmail(data: {
-    //     nomination: { nomineeName: string; nomineePosition: string };
-    //     nominatorName: string;
-    //     nominatorEmail: string;
-    //     token: string;
-    // }) {
-    //     try {
-    //         const success = await this.emailService.sendNominatorVerificationEmail(
-    //             data.nominatorEmail,
-    //             {
-    //                 nominatorName: data.nominatorName,
-    //                 nomineeName: data.nomination.nomineeName,
-    //                 position: data.nomination.nomineePosition,
-    //             },
-    //             data.token,
-    //         );
-    //         if (!success) {
-    //             throw new Error(`Failed to send nominator verification email to ${data.nominatorEmail}`);
-    //         }
-    //         this.logger.log(`Nominator verification email sent to ${data.nominatorEmail}`);
-    //     } catch (error) {
-    //         this.logger.error(`Failed to send nominator verification email to ${data.nominatorEmail}`, error);
-    //         throw error;
-    //     }
-    // }
 
     async notifyNominationStatusChange(
         nominationData: any,

@@ -95,13 +95,13 @@ export class NominationController {
         nomination?.nominatorVerification?.status === 'APPROVED' &&
         nomination?.guarantorVerifications.every((g) => g.status === 'APPROVED')
     ) {
-      console.log('=== NOMINATION VERIFICATION COMPLETE - MANUAL NOTIFICATION NEEDED ===');
-      console.log('Nominee Name:', nomination.nomineeName);
-      console.log('Nominee Email:', nomination.nomineeEmail);
-      console.log('Nominee Phone:', nomination.nomineeContact);
-      console.log('Position:', nomination.nomineePosition);
-      console.log('Created At:', nomination.createdAt);
-      console.log('================================================================');
+      this.logger.warn('Nomination verification complete — manual notification required', {
+        nomineeName: nomination.nomineeName,
+        nomineeEmail: nomination.nomineeEmail,
+        nomineeContact: nomination.nomineeContact,
+        position: nomination.nomineePosition,
+        createdAt: nomination.createdAt,
+      });
 
       // You can also update nomination status to indicate verification is complete
       await this.nominationService.prisma.nomination.update({
@@ -165,12 +165,12 @@ export class NominationController {
         },
       });
 
-      console.log('=== VERIFICATION DECLINED - MANUAL NOTIFICATION NEEDED ===');
-      console.log('Nominee Name:', nomination?.nomineeName);
-      console.log('Nominee Email:', nomination?.nomineeEmail);
-      console.log('Position:', nomination?.nomineePosition);
-      console.log('Declined Comments:', comments);
-      console.log('========================================================');
+      this.logger.warn('Verification declined — manual notification required', {
+        nomineeName: nomination?.nomineeName,
+        nomineeEmail: nomination?.nomineeEmail,
+        position: nomination?.nomineePosition,
+        declinedComments: comments,
+      });
     }
 
     return {message: 'Verification declined'};

@@ -1,9 +1,8 @@
-import {BadRequestException, Injectable, NotFoundException} from "@nestjs/common";
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../../db';
 import { DeadlineService } from '../../common/utils/deadline.service';
 import { CreateNominationDto } from '../dto/create-nomination.dto';
 import { NominationStatus, Candidate_Position, UserRole } from '@prisma/client/index';
-// import { NotificationService } from "../../notifications/notification.service"; // Commented out since we're not using it
 import { v4 as uuidv4 } from 'uuid';
 import { UsersService } from "../../users/users.service";
 import { CloudinaryService } from '../../file-upload/services/cloudinary.service';
@@ -24,15 +23,14 @@ function mapPositionToEnum(position: string): Candidate_Position {
 
 @Injectable()
 export class NominationService {
+    private readonly logger = new Logger(NominationService.name);
+
     constructor(
         public prisma: PrismaService,
-        // public notificationService: NotificationService,
         private deadlineService: DeadlineService,
         public usersService: UsersService,
         private cloudinaryService: CloudinaryService,
-    ) {
-        console.log('Instantiating NominationService');
-    }
+    ) {}
 
     async createNomination(createNominationDto: CreateNominationDto, file?: Express.Multer.File, userId?: string) {
         if (!this.deadlineService.isNominationOpen()) {
@@ -183,14 +181,13 @@ export class NominationService {
         // The verification tokens and emails are stored in the database for your manual use
 
         // Log the verification details for manual processing
-        console.log('=== NOMINATION CREATED - MANUAL EMAIL NEEDED ===');
-        console.log('Nominator Email:', nomination.nominatorVerification!.email);
-        console.log('Nominator Token:', nominatorToken);
-        console.log('Guarantor Emails and Tokens:');
-        nomination.guarantorVerifications.forEach((guarantor, index) => {
-            console.log(`  - ${guarantor.email}: ${guarantorTokens[index]}`);
+        this.logger.warn('Nomination created — manual email required', {
+            nominatorEmail: nomination.nominatorVerification!.email,
+            guarantorEmails: nomination.guarantorVerifications.map((g, i) => ({
+                email: g.email,
+                token: guarantorTokens[i],
+            })),
         });
-        console.log('===============================================');
 
         return nomination;
     }

@@ -143,6 +143,16 @@ export class EmailService {
         throw new Error(`Template file not found: ${templateFileName}`);
     }
 
+    async getTemplate(templateName: string): Promise<string> {
+        const templatePath = this.getTemplatePath(templateName);
+        try {
+            return await fs.promises.readFile(templatePath, 'utf8');
+        } catch (error) {
+            this.logger.error(`Template not found: ${templatePath}`);
+            throw new Error(`Template ${templateName} not found`);
+        }
+    }
+
     async sendNominatorVerificationEmail(to: string, data: any): Promise<void> {
         const result = await this.sendEmail({
             to,

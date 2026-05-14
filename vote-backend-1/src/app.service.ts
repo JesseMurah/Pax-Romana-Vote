@@ -3,10 +3,12 @@ import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AppService {
+  private readonly logger = new Logger(AppService.name);
+
   constructor(
       private configService: ConfigService
   ) {
-    console.log('Instantiating AppService');
+    this.logger.log('AppService initialized');
   }
 
   getApplicationStatus() {
