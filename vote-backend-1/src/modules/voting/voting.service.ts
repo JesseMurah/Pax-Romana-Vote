@@ -55,8 +55,11 @@ export class VotingService {
         return {
             totalVotes: stats.totalVotes,
             turnoutPercentage: stats.turnoutPercentage,
-            positionSummary: stats.positionStats.map((p) => ({ position: p.position, totalVotes: p.totalVotes, candidateCount: p.candidates.length })),
-            votingStatus: await this.getVotingStats(),
+            positionSummary: stats.positionStats.map((p) => ({
+                position: p.position,
+                totalVotes: p.totalVotes,
+                candidateCount: p.candidates.length,
+            })),
             lastUpdated: stats.lastUpdated,
             systemStatus: 'ACTIVE',
         };
