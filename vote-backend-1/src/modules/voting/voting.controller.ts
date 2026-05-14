@@ -12,6 +12,9 @@ import {
     UseGuards
 } from "@nestjs/common";
 import {VotingService} from "./voting.service";
+import { OtpService } from './services/otp.service';
+import { VoteSubmissionService } from './services/vote-submission.service';
+import { VotingAdminService } from './services/voting-admin.service';
 import {GenerateOtpDto} from "./dto/generate-otp.dto";
 import {VerifyOtpDto} from "./dto/verify-otp.dto";
 import {SubmitVoteDto} from "./dto/submit-vote.dto";
@@ -26,7 +29,12 @@ import {SseEventType} from "../real-time/enums/sse-event-types.enum";
 export class VotingController {
     private readonly logger = new Logger(VotingController.name);
 
-    constructor(private readonly votingService: VotingService) {}
+    constructor(
+        private readonly votingService: VotingService,
+        private readonly otpService: OtpService,
+        private readonly voteSubmissionService: VoteSubmissionService,
+        private readonly votingAdminService: VotingAdminService,
+    ) {}
 
     // ========== EXISTING ENDPOINTS (Enhanced with logging) ==========
 
@@ -49,7 +57,7 @@ export class VotingController {
                 }, HttpStatus.BAD_REQUEST);
             }
 
-            const result = await this.votingService.generateOtp(dto);
+            const result = await this.otpService.generateOtp(dto);
 
             this.logger.log(`OTP generated successfully for: ${dto.email}`);
             return {
@@ -98,7 +106,7 @@ export class VotingController {
                 }, HttpStatus.UNPROCESSABLE_ENTITY);
             }
 
-            const result = await this.votingService.verifyOtp(dto);
+            const result = await this.otpService.verifyOtp(dto);
 
             this.logger.log(`OTP verified successfully for: ${dto.email}`);
             return result;
@@ -145,7 +153,7 @@ export class VotingController {
     @Get('ballot')
     async getBallot() {
         this.logger.debug('Ballot requested');
-        return this.votingService.getBallot();
+        return this.voteSubmissionService.getBallot();
     }
 
     @Post('submit')
@@ -155,7 +163,7 @@ export class VotingController {
         }
 
         this.logger.log(`Vote submission for session: ${dto.sessionId.slice(0, 8)}***`);
-        const result = await this.votingService.submitVote(dto);
+        const result = await this.voteSubmissionService.submitVote(dto);
 
         this.logger.log(`Vote successfully submitted - ID: ${result.voteId}`);
         return result;
@@ -164,7 +172,7 @@ export class VotingController {
     @Get('session/:sessionId/validate')
     async validateSession(@Param('sessionId') sessionId: string) {
         this.logger.debug(`Session validation requested: ${sessionId.slice(0, 8)}***`);
-        return this.votingService.validateSession(sessionId);
+        return this.voteSubmissionService.validateSession(sessionId);
     }
 
     @Get('stats')
@@ -286,7 +294,7 @@ export class VotingController {
     ) {
         this.logger.log(`Voting analytics requested by: ${user.email}`);
 
-        return this.votingService.getVotingAnalytics({
+        return this.votingAdminService.getVotingAnalytics({
             timeframe: timeframe || 'all',
             position: position as Candidate_Position,
             requestedBy: user.email,
@@ -302,7 +310,7 @@ export class VotingController {
     @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.EC_MEMBER)
     async getSystemHealth(@CurrentUser() user: any) {
         this.logger.debug(`System health check by: ${user.email}`);
-        return this.votingService.getSystemHealth();
+        return this.votingAdminService.getSystemHealth();
     }
 
     /**
@@ -314,7 +322,7 @@ export class VotingController {
     @Roles(UserRole.SUPER_ADMIN)
     async getAnomalies(@CurrentUser() user: any) {
         this.logger.log(`Anomaly detection results requested by: ${user.email}`);
-        return this.votingService.getAnomalies();
+        return this.votingAdminService.getAnomalies();
     }
 
     /**
@@ -336,7 +344,7 @@ export class VotingController {
 
         this.logger.warn(`EMERGENCY: Voting paused by ${user.email}. Reason: ${reason}`);
 
-        await this.votingService.pauseVoting(reason, user.email);
+        await this.votingAdminService.pauseVoting(reason, user.email);
 
         return {
             message: 'Voting has been paused',
@@ -365,7 +373,7 @@ export class VotingController {
 
         this.logger.log(`Voting resumed by ${user.email}. Reason: ${reason}`);
 
-        await this.votingService.resumeVoting(reason, user.email);
+        await this.votingAdminService.resumeVoting(reason, user.email);
 
         return {
             message: 'Voting has been resumed',
@@ -384,7 +392,7 @@ export class VotingController {
     @Roles(UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.EC_MEMBER)
     async getActiveSessions(@CurrentUser() user: any) {
         this.logger.debug(`Active sessions requested by: ${user.email}`);
-        return this.votingService.getActiveSessions();
+        return this.votingAdminService.getActiveSessions();
     }
 
     /**
@@ -401,7 +409,7 @@ export class VotingController {
     ) {
         this.logger.log(`Voting data export requested by: ${user.email}, format: ${format}`);
 
-        return this.votingService.exportVotingData({
+        return this.votingAdminService.exportVotingData({
             format,
             includePersonalData: includePersonalData === 'true',
             exportedBy: user.email,
