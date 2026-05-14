@@ -1,5 +1,5 @@
 -- CreateEnum
-CREATE TYPE "position" AS ENUM ('PRESIDENT', 'VICE_PRESIDENT', 'GEN_SECRETARY', 'FINANCIAL_SECRETARY', 'ORGANIZING_SECRETARY_MAIN', 'ORGANIZING_SECRETARY_ASST', 'PRO_MAIN', 'PRO_ASSISTANT', 'WOMEN_COMMISSIONER');
+CREATE TYPE "position" AS ENUM ('PRESIDENT', 'VICE_PRESIDENT', 'GEN_SECRETARY', 'FINANCIAL_SECRETARY', 'ORGANIZING_SECRETARY_MAIN', 'PRO_MAIN', 'WOMEN_COMMISSIONER');
 
 -- CreateEnum
 CREATE TYPE "genders" AS ENUM ('MALE', 'FEMALE');
@@ -8,7 +8,10 @@ CREATE TYPE "genders" AS ENUM ('MALE', 'FEMALE');
 CREATE TYPE "nomination_statuses" AS ENUM ('PENDING', 'AWAITING_VERIFICATION', 'PARTIALLY_VERIFIED', 'VERIFIED', 'UNDER_REVIEW', 'APPROVED', 'REJECTED', 'WITHDRAWN');
 
 -- CreateEnum
-CREATE TYPE "token_types" AS ENUM ('NOMINATOR_VERIFICATION', 'GUARANTOR_VERIFICATION', 'SMS_VERIFICATION', 'PASSWORD_RESET');
+CREATE TYPE "TokenType" AS ENUM ('NOMINATOR_VERIFICATION', 'GUARANTOR_VERIFICATION', 'ONE_VERIFICATION', 'PASSWORD_RESET');
+
+-- CreateEnum
+CREATE TYPE "VerificationTargetType" AS ENUM ('NOMINATOR', 'GUARANTOR');
 
 -- CreateEnum
 CREATE TYPE "user_roles" AS ENUM ('VOTER', 'ASPIRANT', 'EC_MEMBER', 'SUPER_ADMIN', 'ADMIN');
@@ -25,13 +28,17 @@ CREATE TABLE "User" (
     "name" TEXT NOT NULL,
     "email" TEXT NOT NULL,
     "phone" TEXT,
+    "password" TEXT,
     "role" "user_roles" NOT NULL DEFAULT 'VOTER',
-    "phoneVerified" BOOLEAN NOT NULL DEFAULT false,
-    "emailVerified" BOOLEAN NOT NULL DEFAULT false,
+    "programme" TEXT,
     "level" TEXT,
     "subgroup" TEXT,
     "college" TEXT,
+    "phoneVerified" BOOLEAN NOT NULL DEFAULT false,
+    "emailVerifiedAt" TIMESTAMP(3),
+    "emailVerified" BOOLEAN NOT NULL DEFAULT false,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
+    "hasVoted" BOOLEAN NOT NULL DEFAULT false,
     "lastLoginAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -49,6 +56,7 @@ CREATE TABLE "Nomination" (
     "nomineeContact" TEXT NOT NULL,
     "nomineePosition" "position" NOT NULL,
     "photoUrl" TEXT,
+    "photoPublicId" TEXT,
     "status" "nomination_statuses" NOT NULL DEFAULT 'PENDING',
     "nomineeCollege" TEXT NOT NULL,
     "nomineeDepartment" TEXT NOT NULL,
@@ -71,9 +79,12 @@ CREATE TABLE "Nomination" (
     "skills" TEXT[],
     "visionForOffice" TEXT[],
     "knowledgeAboutOffice" TEXT[],
+    "approvalCount" INTEGER NOT NULL DEFAULT 0,
+    "rejectionCount" INTEGER NOT NULL DEFAULT 0,
+    "reviewedAt" TIMESTAMP(3),
+    "rejectionReason" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
-    "userId" TEXT,
     "subgroupId" TEXT,
 
     CONSTRAINT "Nomination_pkey" PRIMARY KEY ("id")
@@ -95,7 +106,6 @@ CREATE TABLE "NominatorVerification" (
     "declinedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
-    "userId" TEXT,
 
     CONSTRAINT "NominatorVerification_pkey" PRIMARY KEY ("id")
 );
@@ -115,36 +125,35 @@ CREATE TABLE "GuarantorVerification" (
     "declinedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
-    "userId" TEXT,
 
     CONSTRAINT "GuarantorVerification_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
-CREATE TABLE "ec_reviews" (
+CREATE TABLE "EcReview" (
     "id" TEXT NOT NULL,
-    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
-    "approved" BOOLEAN NOT NULL,
-    "comments" TEXT,
     "nominationId" TEXT NOT NULL,
     "reviewerId" TEXT NOT NULL,
+    "approved" BOOLEAN NOT NULL,
+    "comments" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
-    CONSTRAINT "ec_reviews_pkey" PRIMARY KEY ("id")
+    CONSTRAINT "EcReview_pkey" PRIMARY KEY ("id")
 );
 
 -- CreateTable
 CREATE TABLE "VerificationToken" (
     "id" TEXT NOT NULL,
     "token" TEXT NOT NULL,
-    "type" "token_types" NOT NULL,
+    "type" "TokenType" NOT NULL,
     "email" TEXT,
     "phone" TEXT,
     "expiresAt" TIMESTAMP(3) NOT NULL,
     "used" BOOLEAN NOT NULL DEFAULT false,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "nominatorVerificationId" TEXT,
-    "guarantorVerificationId" TEXT,
+    "verificationId" TEXT NOT NULL,
+    "verificationType" "VerificationTargetType" NOT NULL,
 
     CONSTRAINT "VerificationToken_pkey" PRIMARY KEY ("id")
 );
@@ -275,19 +284,16 @@ CREATE TABLE "election_timeline" (
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "User_phone_key" ON "User"("phone");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "NominatorVerification_nominationId_key" ON "NominatorVerification"("nominationId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "ec_reviews_nominationId_reviewerId_key" ON "ec_reviews"("nominationId", "reviewerId");
+CREATE UNIQUE INDEX "EcReview_nominationId_reviewerId_key" ON "EcReview"("nominationId", "reviewerId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "VerificationToken_token_key" ON "VerificationToken"("token");
-
--- CreateIndex
-CREATE UNIQUE INDEX "VerificationToken_nominatorVerificationId_key" ON "VerificationToken"("nominatorVerificationId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "VerificationToken_guarantorVerificationId_key" ON "VerificationToken"("guarantorVerificationId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "candidates_candidateNumber_key" ON "candidates"("candidateNumber");
@@ -317,34 +323,19 @@ ALTER TABLE "User" ADD CONSTRAINT "User_subgroupId_fkey" FOREIGN KEY ("subgroupI
 ALTER TABLE "Nomination" ADD CONSTRAINT "Nomination_aspirantId_fkey" FOREIGN KEY ("aspirantId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "Nomination" ADD CONSTRAINT "Nomination_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "Nomination" ADD CONSTRAINT "Nomination_subgroupId_fkey" FOREIGN KEY ("subgroupId") REFERENCES "subgroups"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "NominatorVerification" ADD CONSTRAINT "NominatorVerification_nominationId_fkey" FOREIGN KEY ("nominationId") REFERENCES "Nomination"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "NominatorVerification" ADD CONSTRAINT "NominatorVerification_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
 ALTER TABLE "GuarantorVerification" ADD CONSTRAINT "GuarantorVerification_nominationId_fkey" FOREIGN KEY ("nominationId") REFERENCES "Nomination"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "GuarantorVerification" ADD CONSTRAINT "GuarantorVerification_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "EcReview" ADD CONSTRAINT "EcReview_nominationId_fkey" FOREIGN KEY ("nominationId") REFERENCES "Nomination"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "ec_reviews" ADD CONSTRAINT "ec_reviews_nominationId_fkey" FOREIGN KEY ("nominationId") REFERENCES "Nomination"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "ec_reviews" ADD CONSTRAINT "ec_reviews_reviewerId_fkey" FOREIGN KEY ("reviewerId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "VerificationToken" ADD CONSTRAINT "VerificationToken_nominatorVerificationId_fkey" FOREIGN KEY ("nominatorVerificationId") REFERENCES "NominatorVerification"("id") ON DELETE SET NULL ON UPDATE CASCADE;
-
--- AddForeignKey
-ALTER TABLE "VerificationToken" ADD CONSTRAINT "VerificationToken_guarantorVerificationId_fkey" FOREIGN KEY ("guarantorVerificationId") REFERENCES "GuarantorVerification"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE "EcReview" ADD CONSTRAINT "EcReview_reviewerId_fkey" FOREIGN KEY ("reviewerId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "candidates" ADD CONSTRAINT "candidates_nominationId_fkey" FOREIGN KEY ("nominationId") REFERENCES "Nomination"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -357,3 +348,4 @@ ALTER TABLE "votes" ADD CONSTRAINT "votes_sessionId_fkey" FOREIGN KEY ("sessionI
 
 -- AddForeignKey
 ALTER TABLE "audit_logs" ADD CONSTRAINT "audit_logs_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+

@@ -47,7 +47,6 @@ export class UsersService {
                     isActive: true,
                     phoneVerified: false, // Keep for schema compatibility
                     hasVoted: false,
-                    inkVerified: false,
                 },
             });
 
@@ -84,7 +83,6 @@ export class UsersService {
                     phoneVerified: true, // Keep for schema compatibility
                     isActive: true,
                     hasVoted: false,
-                    inkVerified: false,
                 },
             });
 
@@ -456,7 +454,6 @@ export class UsersService {
                 phoneVerified: false, // Keep for schema compatibility
                 isActive: true,
                 hasVoted: false,
-                inkVerified: false,
             },
         });
     }
